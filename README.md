@@ -1,6 +1,6 @@
 # eslint-plugin-no-comment-slop
 
-Flags AI comment slop in JavaScript and TypeScript. The same module runs unchanged in [ESLint](https://eslint.org), [oxlint](https://oxc.rs) and [rslint](https://rslint.rs).
+Flags AI comment slop in JavaScript and TypeScript. The same module runs unchanged in [ESLint](https://eslint.org), [oxlint](https://oxc.rs) and [rslint](https://rslint.rs) because it only uses the rule APIs all three linters implement. CI proves it: one fixture runs through eslint 9, eslint 10, oxlint and rslint, and the diagnostics must match.
 
 Before:
 
@@ -26,6 +26,8 @@ export const getUser = (id) => cache.get(id) ?? fetchUser(id);
 npm install --save-dev eslint-plugin-no-comment-slop
 ```
 
+Needs Node 24+ and one of: ESLint 9+ with flat config, oxlint with `jsPlugins`, or rslint.
+
 ## Usage
 
 ESLint (`eslint.config.mjs`):
@@ -36,13 +38,28 @@ import noCommentSlop from "eslint-plugin-no-comment-slop";
 export default [noCommentSlop.configs.recommended];
 ```
 
-oxlint (`.oxlintrc.json`):
+To adjust a rule, override it after the preset:
+
+```js
+export default [
+  noCommentSlop.configs.recommended,
+  {
+    rules: {
+      "no-comment-slop/no-trailing-period": "off",
+      "no-comment-slop/no-jargon": ["error", { extraWords: ["synergy"] }],
+    },
+  },
+];
+```
+
+oxlint (`.oxlintrc.json`) has no preset support for JS plugins, so enable each rule from the table below:
 
 ```json
 {
   "jsPlugins": ["eslint-plugin-no-comment-slop"],
   "rules": {
-    "no-comment-slop/no-jargon": "error"
+    "no-comment-slop/no-jargon": "error",
+    "no-comment-slop/no-em-dash": "error"
   }
 }
 ```
@@ -54,33 +71,31 @@ import noCommentSlop from "eslint-plugin-no-comment-slop";
 
 export default [
   {
-    plugins: { "no-comment-slop": noCommentSlop },
-    rules: { "no-comment-slop/no-jargon": "error" },
+    files: ["**/*.{js,ts}"],
+    ...noCommentSlop.configs.recommended,
   },
 ];
 ```
 
-CI runs the same fixture through all supported linters and checks they report the same diagnostics.
-
 ## Rules
+
+Every rule is part of the `recommended` config. The 🔧 fixes are mechanical: delete a banner, swap a dash, drop a period, turn `//` into JSDoc. `--fix` never rewrites your wording; `no-jargon` offers editor suggestions instead.
 
 <!-- begin auto-generated rules list -->
 
-💼 Configurations enabled in.\
-✅ Set in the `recommended` configuration.\
 🔧 Automatically fixable by the [`--fix` CLI option](https://eslint.org/docs/user-guide/command-line-interface#--fix).\
 💡 Manually fixable by [editor suggestions](https://eslint.org/docs/latest/use/core-concepts#rule-suggestions).
 
-| Name                                                               | Description                                                         | 💼 | 🔧 | 💡 |
-| :----------------------------------------------------------------- | :------------------------------------------------------------------ | :- | :- | :- |
-| [max-comment-lines](docs/rules/max-comment-lines.md)               | Limit how many lines a comment may span                             | ✅  |    |    |
-| [no-banner-comment](docs/rules/no-banner-comment.md)               | Disallow ASCII separator and banner comments                        | ✅  | 🔧 |    |
-| [no-em-dash](docs/rules/no-em-dash.md)                             | Disallow em dashes (and optionally en dashes) in comments           | ✅  | 🔧 |    |
-| [no-foreign-syntax](docs/rules/no-foreign-syntax.md)               | Disallow comment syntax imported from other languages               | ✅  |    |    |
-| [no-jargon](docs/rules/no-jargon.md)                               | Disallow inflated vocabulary in comments                            | ✅  |    | 💡 |
-| [no-trailing-comment](docs/rules/no-trailing-comment.md)           | Disallow comments on the same line as code                          | ✅  |    |    |
-| [no-trailing-period](docs/rules/no-trailing-period.md)             | Disallow a trailing period at the end of a comment                  | ✅  | 🔧 |    |
-| [prefer-jsdoc-for-exports](docs/rules/prefer-jsdoc-for-exports.md) | Require /** */ rather than // for the comment documenting an export | ✅  | 🔧 |    |
+| Name                                                               | Description                                                         | 🔧 | 💡 |
+| :----------------------------------------------------------------- | :------------------------------------------------------------------ | :- | :- |
+| [max-comment-lines](docs/rules/max-comment-lines.md)               | Limit how many lines a comment may span                             |    |    |
+| [no-banner-comment](docs/rules/no-banner-comment.md)               | Disallow ASCII separator and banner comments                        | 🔧 |    |
+| [no-em-dash](docs/rules/no-em-dash.md)                             | Disallow em dashes (and optionally en dashes) in comments           | 🔧 |    |
+| [no-foreign-syntax](docs/rules/no-foreign-syntax.md)               | Disallow comment syntax imported from other languages               |    |    |
+| [no-jargon](docs/rules/no-jargon.md)                               | Disallow inflated vocabulary in comments                            |    | 💡 |
+| [no-trailing-comment](docs/rules/no-trailing-comment.md)           | Disallow comments on the same line as code                          |    |    |
+| [no-trailing-period](docs/rules/no-trailing-period.md)             | Disallow a trailing period at the end of a comment                  | 🔧 |    |
+| [prefer-jsdoc-for-exports](docs/rules/prefer-jsdoc-for-exports.md) | Require /** */ rather than // for the comment documenting an export | 🔧 |    |
 
 <!-- end auto-generated rules list -->
 
