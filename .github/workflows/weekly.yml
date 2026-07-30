@@ -1,0 +1,37 @@
+name: Weekly latest linters
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  latest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm add -D eslint@latest oxlint@latest @rslint/core@latest
+      - run: pnpm build
+      - run: pnpm test
+      - run: |
+          for linter in eslint eslint9 oxlint rslint; do
+            node tests/integration/run.mjs "$linter"
+          done
+      - if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh issue create \
+            --title "Weekly check against latest linters failed ($(date +%F))" \
+            --body "The integration matrix broke against the latest eslint/oxlint/rslint releases: $RUN_URL"

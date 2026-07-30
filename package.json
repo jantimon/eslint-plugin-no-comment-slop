@@ -1,0 +1,57 @@
+{
+  "name": "eslint-plugin-no-comment-slop",
+  "version": "0.1.0",
+  "description": "Flags AI comment slop in JavaScript and TypeScript. Runs in ESLint, oxlint and rslint",
+  "keywords": [
+    "eslint",
+    "eslintplugin",
+    "eslint-plugin",
+    "oxlint",
+    "rslint",
+    "comments",
+    "ai",
+    "slop"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jantimon/eslint-plugin-no-comment-slop.git"
+  },
+  "license": "MIT",
+  "author": "Jan Nicklas",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test src/index.test.ts",
+    "integration": "node tests/integration/run.mjs",
+    "lint": "eslint .",
+    "docs:update": "eslint-doc-generator",
+    "docs:check": "eslint-doc-generator --check",
+    "prepublishOnly": "pnpm build"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.31.1",
+    "@rslint/core": "^0.7.2",
+    "@types/estree": "^1.0.8",
+    "@types/node": "^24.0.0",
+    "eslint": "^10.8.0",
+    "eslint-doc-generator": "^3.7.0",
+    "eslint-plugin-eslint-plugin": "^7.6.0",
+    "oxlint": "^1.76.0",
+    "typescript": "^6.0.3"
+  },
+  "packageManager": "pnpm@10.15.0",
+  "engines": {
+    "node": ">=24"
+  }
+}

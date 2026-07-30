@@ -1,0 +1,15 @@
+[
+  { "rule": "no-banner-comment", "line": 1 },
+  { "rule": "prefer-jsdoc-for-exports", "line": 1 },
+  { "rule": "no-jargon", "line": 2 },
+  { "rule": "no-em-dash", "line": 2 },
+  { "rule": "no-trailing-period", "line": 2 },
+  { "rule": "no-trailing-comment", "line": 3 },
+  { "rule": "no-foreign-syntax", "line": 4 },
+  { "rule": "prefer-jsdoc-for-exports", "line": 4 },
+  { "rule": "max-comment-lines", "line": 6 },
+  { "rule": "no-foreign-syntax", "line": 6 },
+  { "rule": "prefer-jsdoc-for-exports", "line": 6 },
+  { "rule": "no-foreign-syntax", "line": 7 },
+  { "rule": "no-foreign-syntax", "line": 13 }
+]
