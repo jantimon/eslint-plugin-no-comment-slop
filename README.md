@@ -1,6 +1,6 @@
 # eslint-plugin-no-comment-slop
 
-Flags AI comment slop in JavaScript and TypeScript. One plugin, three linters: the same module runs in [ESLint](https://eslint.org), [oxlint](https://oxc.rs) and [rslint](https://rslint.rs).
+Flags AI comment slop in JavaScript and TypeScript. The same module runs unchanged in [ESLint](https://eslint.org), [oxlint](https://oxc.rs) and [rslint](https://rslint.rs).
 
 Before:
 
