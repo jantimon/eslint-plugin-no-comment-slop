@@ -804,6 +804,204 @@ const noJargon: Rule.RuleModule = {
   },
 };
 
+interface AstNode {
+  type?: string;
+  range?: [number, number];
+  loc?: SourceLocation | null;
+  parent?: AstNode;
+  id?: { name?: string } | null;
+  body?: AstNode[] | AstNode | null;
+  members?: AstNode[];
+  properties?: AstNode[];
+  kind?: string;
+}
+
+const asArray = (value: AstNode[] | AstNode | null | undefined): AstNode[] =>
+  Array.isArray(value) ? value : [];
+
+interface MemberInfo {
+  range: [number, number];
+  loc: SourceLocation;
+}
+
+const memberInfo = (node: AstNode): MemberInfo | null =>
+  node.range && node.loc ? { range: node.range, loc: node.loc } : null;
+
+/** Class members that can carry docs; constructors and static blocks cannot */
+const classMembers = (body: AstNode): AstNode[] =>
+  asArray(body.body).filter(
+    (member) => member.kind !== "constructor" && member.type !== "StaticBlock",
+  );
+
+const enumMembers = (node: AstNode): AstNode[] =>
+  Array.isArray(node.members)
+    ? node.members
+    : asArray((node.body as AstNode | null | undefined)?.members);
+
+function containerLabel(node: AstNode): string {
+  const parent = node.parent;
+  const name = node.id?.name ?? parent?.id?.name;
+  if (node.type === "TSEnumDeclaration") return name ? `enum ${name}` : "this enum";
+  if (node.type === "ClassBody") return name ? `class ${name}` : "this class";
+  if (node.type === "TSInterfaceBody") return name ? `interface ${name}` : "this interface";
+  return name ? `type ${name}` : "this type";
+}
+
+const noJsdocMemberComment = {
+  meta: {
+    type: "suggestion",
+    fixable: "code",
+    docs: {
+      description: "Require /** */ rather than // for the comment documenting a member",
+      recommended: true,
+      url: docsUrl("prefer-jsdoc-for-members"),
+    },
+    schema: [],
+    messages: {
+      useJsdoc:
+        "Use a /** */ block here: editors show JSDoc for the member on hover, // comments stay invisible",
+    },
+  },
+  create(context: Rule.RuleContext) {
+    const sourceCode = getSource(context);
+    const text = sourceText(sourceCode);
+    const memberStarts: number[] = [];
+
+    const add = (nodes: AstNode[]): void => {
+      for (const node of nodes) if (node.range) memberStarts.push(node.range[0]);
+    };
+
+    return {
+      TSInterfaceBody: (node: AstNode) => add(asArray(node.body)),
+      TSTypeLiteral: (node: AstNode) => add(node.members ?? []),
+      ClassBody: (node: AstNode) => add(classMembers(node)),
+      TSEnumDeclaration: (node: AstNode) => add(enumMembers(node)),
+      ObjectExpression: (node: AstNode) =>
+        add((node.properties ?? []).filter((p) => p.type !== "SpreadElement")),
+
+      "Program:exit"() {
+        if (memberStarts.length === 0) return;
+
+        const lineRuns = commentBlocks(text, getComments(sourceCode)).filter(
+          (block) => block[0]!.type === "Line" && !isTrailing(text, block[0]!),
+        );
+
+        for (const run of lineRuns) {
+          if (run.some(isDirective)) continue;
+          const first = run[0]!;
+          const last = run[run.length - 1]!;
+          const memberStart = memberStarts.find((start) =>
+            documentsExportAt(text, first.range[0], last.range[1], start),
+          );
+          if (memberStart === undefined) continue;
+
+          const indent = text.slice(lineStart(text, first.range[0]), first.range[0]);
+          const memberIndent = text.slice(lineStart(text, memberStart), memberStart);
+          const replacement =
+            run.length === 1
+              ? `/** ${first.value.trim()} */\n${memberIndent}`
+              : `/**\n${run
+                  .map((comment) => `${indent} * ${comment.value.trim()}`.trimEnd())
+                  .join("\n")}\n${indent} */\n${memberIndent}`;
+
+          context.report({
+            loc: blockLoc(run),
+            messageId: "useJsdoc",
+            fix: (fixer) => fixer.replaceTextRange([first.range[0], memberStart], replacement),
+          });
+        }
+      },
+    } as unknown as Rule.RuleListener;
+  },
+} as Rule.RuleModule;
+
+interface MemberDocsOptions {
+  minDocumented?: number;
+  minRatio?: number;
+}
+
+const requireMemberDocs = {
+  meta: {
+    type: "suggestion",
+    docs: {
+      description: "Require docs on every member once most of a type is documented",
+      recommended: true,
+      url: docsUrl("require-member-docs"),
+    },
+    schema: [
+      {
+        type: "object",
+        properties: {
+          minDocumented: { type: "integer", minimum: 1 },
+          minRatio: { type: "number", minimum: 0, maximum: 1 },
+        },
+        additionalProperties: false,
+      },
+    ],
+    messages: {
+      missing:
+        "{{documented}} of {{total}} members of {{container}} are documented. Give this one at least a /** one liner */ too",
+    },
+  },
+  create(context: Rule.RuleContext) {
+    const options = (context.options[0] ?? {}) as MemberDocsOptions;
+    const minDocumented = options.minDocumented ?? 3;
+    const minRatio = options.minRatio ?? 0.4;
+    const sourceCode = getSource(context);
+    const text = sourceText(sourceCode);
+    const containers: { label: string; members: MemberInfo[] }[] = [];
+
+    const add = (label: string, nodes: AstNode[]): void => {
+      const members = nodes.map(memberInfo).filter((m): m is MemberInfo => m !== null);
+      if (members.length > 0) containers.push({ label, members });
+    };
+
+    return {
+      TSInterfaceBody: (node: AstNode) => add(containerLabel(node), asArray(node.body)),
+      TSTypeLiteral: (node: AstNode) => add(containerLabel(node), node.members ?? []),
+      ClassBody: (node: AstNode) => add(containerLabel(node), classMembers(node)),
+      TSEnumDeclaration: (node: AstNode) => add(containerLabel(node), enumMembers(node)),
+
+      "Program:exit"() {
+        if (containers.length === 0) return;
+
+        const blocks = commentBlocks(text, getComments(sourceCode)).filter(
+          (block) => !isTrailing(text, block[0]!) && !block.some(isDirective),
+        );
+
+        for (const { label, members } of containers) {
+          const documented = members.map((member) =>
+            blocks.some((block) =>
+              documentsExportAt(
+                text,
+                block[0]!.range[0],
+                block[block.length - 1]!.range[1],
+                member.range[0],
+              ),
+            ),
+          );
+          const count = documented.filter(Boolean).length;
+          if (count === 0) continue;
+          if (count < minDocumented && count / members.length < minRatio) continue;
+
+          members.forEach((member, index) => {
+            if (documented[index]) return;
+            context.report({
+              loc: member.loc,
+              messageId: "missing",
+              data: {
+                documented: String(count),
+                total: String(members.length),
+                container: label,
+              },
+            });
+          });
+        }
+      },
+    } as unknown as Rule.RuleListener;
+  },
+} as Rule.RuleModule;
+
 const XML_DOC_TAG =
   /<\/?summary>|<\/?remarks>|<param\s+name=|<\/?returns>|<typeparam\b|<inheritdoc\b|<see\s+cref\b/i;
 
@@ -866,7 +1064,7 @@ const noForeignSyntax: Rule.RuleModule = {
 const plugin = {
   meta: {
     name: "eslint-plugin-no-comment-slop",
-    version: "0.1.0",
+    version: "0.2.0",
     namespace: "no-comment-slop",
   },
   rules: {
@@ -874,6 +1072,8 @@ const plugin = {
     "no-banner-comment": noBannerComment,
     "no-trailing-comment": noTrailingComment,
     "prefer-jsdoc-for-exports": preferJsdocForExports,
+    "prefer-jsdoc-for-members": noJsdocMemberComment,
+    "require-member-docs": requireMemberDocs,
     "no-trailing-period": noTrailingPeriod,
     "no-em-dash": noEmDash,
     "no-jargon": noJargon,
@@ -891,6 +1091,8 @@ Object.assign(plugin.configs, {
       "no-comment-slop/no-banner-comment": "error",
       "no-comment-slop/no-trailing-comment": "error",
       "no-comment-slop/prefer-jsdoc-for-exports": "error",
+      "no-comment-slop/prefer-jsdoc-for-members": "error",
+      "no-comment-slop/require-member-docs": "error",
       "no-comment-slop/no-trailing-period": "error",
       "no-comment-slop/no-em-dash": "error",
       "no-comment-slop/no-jargon": "error",

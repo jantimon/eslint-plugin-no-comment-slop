@@ -48,7 +48,8 @@
     "eslint-doc-generator": "^3.7.0",
     "eslint-plugin-eslint-plugin": "^7.6.0",
     "oxlint": "^1.76.0",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.65.0"
   },
   "packageManager": "pnpm@10.15.0",
   "engines": {

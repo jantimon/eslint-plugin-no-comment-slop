@@ -1,10 +1,19 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { RuleTester } from "eslint";
+import tseslint from "typescript-eslint";
 import plugin, { defaultJargonWords } from "./index.ts";
 
 const ruleTester = new RuleTester({
   languageOptions: { ecmaVersion: 2024, sourceType: "module" },
+});
+
+const tsRuleTester = new RuleTester({
+  languageOptions: {
+    parser: tseslint.parser as never,
+    ecmaVersion: 2024,
+    sourceType: "module",
+  },
 });
 
 const rule = (name: string) => {
@@ -16,11 +25,11 @@ const rule = (name: string) => {
 test("plugin shape", () => {
   assert.equal(plugin.meta.name, "eslint-plugin-no-comment-slop");
   assert.equal(plugin.meta.namespace, "no-comment-slop");
-  assert.equal(Object.keys(plugin.rules).length, 8);
+  assert.equal(Object.keys(plugin.rules).length, 10);
   const recommended = (plugin.configs as Record<string, { rules: Record<string, string> }>)
     .recommended;
   assert.ok(recommended);
-  assert.equal(Object.keys(recommended.rules).length, 8);
+  assert.equal(Object.keys(recommended.rules).length, 10);
   assert.ok(defaultJargonWords.includes("utilize"));
 });
 
@@ -165,6 +174,103 @@ test("prefer-jsdoc-for-exports", () => {
         code: "function wrap() {}\n\n  // indented docs\n\n  export const a = 1;",
         errors: [{ messageId: "useJsdoc" }],
         output: "function wrap() {}\n\n  /**\n   * indented docs\n   */\n  export const a = 1;",
+      },
+    ],
+  });
+});
+
+test("prefer-jsdoc-for-members", () => {
+  const rule2 = rule("prefer-jsdoc-for-members");
+
+  ruleTester.run("prefer-jsdoc-for-members", rule2, {
+    valid: [
+      "const opts = {\n  /** does Y when active */\n  active: true,\n};",
+      "const opts = {\n  active: true, // eslint-disable-line no-console\n};",
+      "// about the whole object\nconst opts = { active: true };",
+      "class A {\n  /** documented */\n  b = 1;\n}",
+    ],
+    invalid: [
+      {
+        code: "const opts = {\n  // does Y when active\n  active: true,\n};",
+        errors: [{ messageId: "useJsdoc" }],
+        output: "const opts = {\n  /** does Y when active */\n  active: true,\n};",
+      },
+      {
+        code: "const opts = {\n  // line one\n  // line two\n  active: true,\n};",
+        errors: [{ messageId: "useJsdoc" }],
+        output:
+          "const opts = {\n  /**\n   * line one\n   * line two\n   */\n  active: true,\n};",
+      },
+      {
+        code: "class A {\n  // count of retries\n  b = 1;\n}",
+        errors: [{ messageId: "useJsdoc" }],
+        output: "class A {\n  /** count of retries */\n  b = 1;\n}",
+      },
+    ],
+  });
+
+  tsRuleTester.run("prefer-jsdoc-for-members", rule2, {
+    valid: ["interface A {\n  /** the url */\n  url: string;\n}"],
+    invalid: [
+      {
+        code: "interface A {\n  // the url\n  url: string;\n}",
+        errors: [{ messageId: "useJsdoc" }],
+        output: "interface A {\n  /** the url */\n  url: string;\n}",
+      },
+      {
+        code: "enum Mode {\n  // fast path\n  Fast,\n  Slow,\n}",
+        errors: [{ messageId: "useJsdoc" }],
+        output: "enum Mode {\n  /** fast path */\n  Fast,\n  Slow,\n}",
+      },
+    ],
+  });
+});
+
+test("require-member-docs", () => {
+  const rule2 = rule("require-member-docs");
+
+  tsRuleTester.run("require-member-docs", rule2, {
+    valid: [
+      "interface A {\n  a: string;\n  b: string;\n  c: string;\n}",
+      "interface A {\n  /** one */\n  a: string;\n  b: string;\n  c: string;\n  d: string;\n  e: string;\n}",
+      "interface A {\n  /** one */\n  a: string;\n  /** two */\n  b: string;\n  /** three */\n  c: string;\n}",
+      "type A = {\n  /** one */\n  a: string;\n  /** two */\n  b: string;\n  /** three */\n  c: string;\n};",
+    ],
+    invalid: [
+      {
+        code: "interface A {\n  /** one */\n  a: string;\n  /** two */\n  b: string;\n  /** three */\n  c: string;\n  d: string;\n}",
+        errors: [
+          {
+            messageId: "missing",
+            data: { documented: "3", total: "4", container: "interface A" },
+            line: 8,
+          },
+        ],
+      },
+      {
+        code: "interface A {\n  /** one */\n  a: string;\n  b: string;\n}",
+        errors: [{ messageId: "missing" }],
+      },
+      {
+        code: "enum Mode {\n  /** a */\n  A,\n  /** b */\n  B,\n  /** c */\n  C,\n  D,\n}",
+        errors: [{ messageId: "missing", data: { documented: "3", total: "4", container: "enum Mode" } }],
+      },
+      {
+        code: "interface A {\n  // one\n  a: string;\n  // two\n  b: string;\n  // three\n  c: string;\n  d: string;\n}",
+        errors: [{ messageId: "missing" }],
+      },
+    ],
+  });
+
+  ruleTester.run("require-member-docs", rule2, {
+    valid: [
+      "const opts = {\n  /** documented */\n  a: 1,\n  b: 2,\n  c: 3,\n  d: 4,\n  e: 5,\n};",
+      "class A {\n  /** one */\n  a = 1;\n  b = 2;\n  c = 3;\n  constructor() { this.d = 4; }\n}",
+    ],
+    invalid: [
+      {
+        code: "class A {\n  /** one */\n  a = 1;\n  /** two */\n  b = 2;\n  /** three */\n  c = 3;\n  d = 4;\n}",
+        errors: [{ messageId: "missing", data: { documented: "3", total: "4", container: "class A" } }],
       },
     ],
   });

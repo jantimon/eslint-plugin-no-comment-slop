@@ -107,6 +107,8 @@ Every rule is part of the `recommended` config. The 🔧 fixes are mechanical: d
 | [no-trailing-comment](docs/rules/no-trailing-comment.md)           | Disallow comments on the same line as code                          |    |    |
 | [no-trailing-period](docs/rules/no-trailing-period.md)             | Disallow a trailing period at the end of a comment                  | 🔧 |    |
 | [prefer-jsdoc-for-exports](docs/rules/prefer-jsdoc-for-exports.md) | Require /** */ rather than // for the comment documenting an export | 🔧 |    |
+| [prefer-jsdoc-for-members](docs/rules/prefer-jsdoc-for-members.md) | Require /** */ rather than // for the comment documenting a member  | 🔧 |    |
+| [require-member-docs](docs/rules/require-member-docs.md)           | Require docs on every member once most of a type is documented      |    |    |
 
 <!-- end auto-generated rules list -->
 

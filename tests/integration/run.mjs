@@ -1,11 +1,11 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..", "..");
-const fixture = "tests/integration/fixture/slop.js";
+const fixtures = ["tests/integration/fixture/slop.js", "tests/integration/fixture/slop.ts"];
 
 const expected = JSON.parse(readFileSync(join(here, "expected.json"), "utf8"));
 
@@ -18,7 +18,7 @@ const linters = {
       "tests/integration/eslint.fixture.config.mjs",
       "--format",
       "json",
-      fixture,
+      ...fixtures,
     ],
     parse: parseEslintJson,
   },
@@ -32,7 +32,7 @@ const linters = {
       "tests/integration/eslint.fixture.config.mjs",
       "--format",
       "json",
-      fixture,
+      ...fixtures,
     ],
     parse: parseEslintJson,
   },
@@ -43,11 +43,12 @@ const linters = {
       "tests/integration/oxlintrc.json",
       "--format",
       "json",
-      fixture,
+      ...fixtures,
     ],
     parse(stdout) {
       const report = JSON.parse(stdout);
       return report.diagnostics.map((diagnostic) => ({
+        file: basename(diagnostic.filename),
         rule: /\(([^)]+)\)/.exec(diagnostic.code)?.[1] ?? diagnostic.code,
         line: diagnostic.labels[0].span.line,
       }));
@@ -60,7 +61,7 @@ const linters = {
       "tests/integration/rslint.config.mjs",
       "--format",
       "jsonline",
-      fixture,
+      ...fixtures,
     ],
     parse(stdout) {
       return stdout
@@ -68,6 +69,7 @@ const linters = {
         .filter((line) => line.trim().startsWith("{"))
         .map((line) => JSON.parse(line))
         .map((diagnostic) => ({
+          file: basename(diagnostic.filePath),
           rule: diagnostic.ruleName.split("/")[1],
           line: diagnostic.range.start.line,
         }));
@@ -77,14 +79,17 @@ const linters = {
 
 function parseEslintJson(stdout) {
   const report = JSON.parse(stdout);
-  return (report[0]?.messages ?? []).map((message) => ({
-    rule: message.ruleId.split("/")[1],
-    line: message.line,
-  }));
+  return report.flatMap((result) =>
+    (result.messages ?? []).map((message) => ({
+      file: basename(result.filePath),
+      rule: message.ruleId.split("/")[1],
+      line: message.line,
+    })),
+  );
 }
 
 const normalize = (diagnostics) =>
-  diagnostics.map(({ rule, line }) => `${String(line).padStart(3)}  ${rule}`).sort();
+  diagnostics.map(({ file, rule, line }) => `${file}:${String(line).padStart(3)}  ${rule}`).sort();
 
 const name = process.argv[2];
 const linter = linters[name];
@@ -116,7 +121,7 @@ const surplus = actual.filter((entry) => !wanted.includes(entry));
 
 if (missing.length > 0 || surplus.length > 0) {
   console.error(`${name}: diagnostics differ from expected.json`);
-  for (const entry of missing) console.error(`  missing   ${entry}`);
+  for (const entry of missing) console.error(`  missing    ${entry}`);
   for (const entry of surplus) console.error(`  unexpected ${entry}`);
   process.exit(1);
 }
