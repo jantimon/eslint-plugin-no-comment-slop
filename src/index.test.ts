@@ -253,8 +253,8 @@ test("no-jargon", () => {
         code: "// utilize the helper\nconst a = 1;",
         errors: [
           {
-            messageId: "jargon",
-            data: { word: "utilize" },
+            messageId: "jargonSuggest",
+            data: { word: "utilize", with: "use" },
             suggestions: [
               {
                 messageId: "replaceWith",

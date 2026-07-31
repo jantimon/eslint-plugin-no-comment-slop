@@ -643,7 +643,9 @@ const noEmDash: Rule.RuleModule = {
         additionalProperties: false,
       },
     ],
-    messages: { dash: "Use a plain hyphen instead of {{name}}" },
+    messages: {
+      dash: "Use a plain hyphen instead of {{name}}. If the comment means the literal character, wrap it in backticks",
+    },
   },
   create(context) {
     const options = (context.options[0] ?? {}) as EmDashOptions;
@@ -750,6 +752,7 @@ const noJargon: Rule.RuleModule = {
     ],
     messages: {
       jargon: "“{{word}}” reads like generated prose. Say it plainly",
+      jargonSuggest: "“{{word}}” reads like generated prose. Say “{{with}}”",
       replaceWith: "Replace with “{{with}}”",
     },
   },
@@ -784,8 +787,8 @@ const noJargon: Rule.RuleModule = {
 
             const report: Parameters<typeof context.report>[0] = {
               loc: spanAt(comment, index, word.length),
-              messageId: "jargon",
-              data: { word },
+              messageId: replacement === undefined ? "jargon" : "jargonSuggest",
+              data: replacement === undefined ? { word } : { word, with: replacement },
             };
 
             if (replacement !== undefined) {
