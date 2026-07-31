@@ -216,18 +216,15 @@ test("no-em-dash", () => {
       {
         code: "// em dash — not fine\nconst a = 1;",
         errors: [{ messageId: "dash", data: { name: "an em dash" } }],
-        output: "// em dash - not fine\nconst a = 1;",
       },
       {
         code: "// en dash – flagged now\nconst a = 1;",
         options: [{ includeEnDash: true }],
         errors: [{ messageId: "dash", data: { name: "an en dash" } }],
-        output: "// en dash - flagged now\nconst a = 1;",
       },
       {
         code: "// two — dashes — here\nconst a = 1;",
         errors: [{ messageId: "dash" }, { messageId: "dash" }],
-        output: "// two - dashes - here\nconst a = 1;",
       },
     ],
   });

@@ -621,13 +621,11 @@ const noTrailingPeriod: Rule.RuleModule = {
 
 interface EmDashOptions {
   includeEnDash?: boolean;
-  replacement?: string;
 }
 
 const noEmDash: Rule.RuleModule = {
   meta: {
     type: "suggestion",
-    fixable: "code",
     docs: {
       description: "Disallow em dashes (and optionally en dashes) in comments",
       recommended: true,
@@ -638,19 +636,17 @@ const noEmDash: Rule.RuleModule = {
         type: "object",
         properties: {
           includeEnDash: { type: "boolean" },
-          replacement: { type: "string" },
         },
         additionalProperties: false,
       },
     ],
     messages: {
-      dash: "Use a plain hyphen instead of {{name}}. If the comment means the literal character, wrap it in backticks",
+      dash: "Rewrite this without {{name}}: split the sentence, or use a comma, colon, or parentheses. For the literal character, wrap it in backticks",
     },
   },
   create(context) {
     const options = (context.options[0] ?? {}) as EmDashOptions;
     const includeEnDash = options.includeEnDash ?? false;
-    const replacement = options.replacement ?? "-";
     const sourceCode = getSource(context);
     const chars = includeEnDash ? /[—–]/g : /—/g;
 
@@ -668,8 +664,6 @@ const noEmDash: Rule.RuleModule = {
               loc: spanAt(comment, index, 1),
               messageId: "dash",
               data: { name: match[0] === "—" ? "an em dash" : "an en dash" },
-              fix: (fixer) =>
-                fixer.replaceTextRange(rangeAt(comment, index, 1), replacement),
             });
           }
         }

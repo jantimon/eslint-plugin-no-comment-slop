@@ -90,7 +90,7 @@ export default [
 
 ## Rules
 
-Every rule is part of the `recommended` config. The 🔧 fixes are mechanical: delete a banner, swap a dash, drop a period, turn `//` into JSDoc. `--fix` never rewrites your wording; `no-jargon` offers editor suggestions instead.
+Every rule is part of the `recommended` config. The 🔧 fixes are mechanical: delete a banner, drop a period, turn `//` into JSDoc. `--fix` never rewrites your wording; `no-jargon` and `no-em-dash` report with guidance instead.
 
 <!-- begin auto-generated rules list -->
 
@@ -101,7 +101,7 @@ Every rule is part of the `recommended` config. The 🔧 fixes are mechanical: d
 | :----------------------------------------------------------------- | :------------------------------------------------------------------ | :- | :- |
 | [max-comment-lines](docs/rules/max-comment-lines.md)               | Limit how many lines a comment may span                             |    |    |
 | [no-banner-comment](docs/rules/no-banner-comment.md)               | Disallow ASCII separator and banner comments                        | 🔧 |    |
-| [no-em-dash](docs/rules/no-em-dash.md)                             | Disallow em dashes (and optionally en dashes) in comments           | 🔧 |    |
+| [no-em-dash](docs/rules/no-em-dash.md)                             | Disallow em dashes (and optionally en dashes) in comments           |    |    |
 | [no-foreign-syntax](docs/rules/no-foreign-syntax.md)               | Disallow comment syntax imported from other languages               |    |    |
 | [no-jargon](docs/rules/no-jargon.md)                               | Disallow inflated vocabulary in comments                            |    | 💡 |
 | [no-trailing-comment](docs/rules/no-trailing-comment.md)           | Disallow comments on the same line as code                          |    |    |
