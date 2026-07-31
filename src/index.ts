@@ -190,6 +190,23 @@ function splitSections(lines: CommentLine[]): CommentLine[][] {
   return sections;
 }
 
+/** Drop fence delimiters and everything between them, so code samples never count */
+function withoutFencedCode(lines: CommentLine[]): CommentLine[] {
+  const kept: CommentLine[] = [];
+  let inFence = false;
+  for (const line of lines) {
+    if (line.text.startsWith("```")) {
+      inFence = !inFence;
+      continue;
+    }
+    if (!inFence) kept.push(line);
+  }
+  return kept;
+}
+
+const isExampleSection = (section: CommentLine[]): boolean =>
+  /^@example\b/.test(section[0]!.text);
+
 const sectionLoc = (section: CommentLine[]): SourceLocation => ({
   start: { line: section[0]!.line, column: section[0]!.column },
   end: {
@@ -210,6 +227,8 @@ interface MaxCommentLinesOptions {
   max?: number;
   headerMax?: number;
   jsdocSectionMax?: number;
+  exportDescriptionMax?: number;
+  exportTagMax?: number;
 }
 
 const maxCommentLines: Rule.RuleModule = {
@@ -227,6 +246,8 @@ const maxCommentLines: Rule.RuleModule = {
           max: { type: "integer", minimum: 1 },
           headerMax: { type: "integer", minimum: 1 },
           jsdocSectionMax: { type: "integer", minimum: 1 },
+          exportDescriptionMax: { type: "integer", minimum: 1 },
+          exportTagMax: { type: "integer", minimum: 1 },
         },
         additionalProperties: false,
       },
@@ -243,29 +264,51 @@ const maxCommentLines: Rule.RuleModule = {
     const max = options.max ?? 3;
     const headerMax = options.headerMax ?? 5;
     const jsdocSectionMax = options.jsdocSectionMax ?? 5;
+    const exportDescriptionMax = options.exportDescriptionMax ?? 10;
+    const exportTagMax = options.exportTagMax ?? 7;
     const sourceCode = getSource(context);
     const text = sourceText(sourceCode);
+    const exportLines = new Set<number>();
+
+    const collect = (node: { loc?: SourceLocation | null | undefined }): void => {
+      if (node.loc) exportLines.add(node.loc.start.line);
+    };
 
     return {
-      Program() {
+      ExportNamedDeclaration: collect,
+      ExportDefaultDeclaration: collect,
+
+      "Program:exit"() {
         for (const block of commentBlocks(text, getComments(sourceCode))) {
           if (block.some(isDirective)) continue;
           const limit = isFileHeader(text, block[0]!) ? headerMax : max;
 
           if (isJsdoc(block[0]!)) {
-            for (const section of splitSections(commentLines(block[0]!))) {
-              if (section.length > jsdocSectionMax) {
+            const comment = block[0]!;
+            const documentsExport = exportLines.has(comment.loc.end.line + 1);
+            const lines = withoutFencedCode(commentLines(comment));
+            for (const section of splitSections(lines)) {
+              if (isExampleSection(section)) continue;
+              const isTag = /^@\w/.test(section[0]!.text);
+              const sectionMax = documentsExport
+                ? isTag
+                  ? exportTagMax
+                  : exportDescriptionMax
+                : jsdocSectionMax;
+              if (section.length > sectionMax) {
                 context.report({
                   loc: sectionLoc(section),
                   messageId: "sectionTooLong",
-                  data: { lines: String(section.length), max: String(jsdocSectionMax) },
+                  data: { lines: String(section.length), max: String(sectionMax) },
                 });
               }
             }
             continue;
           }
 
-          const lines = block.flatMap(commentLines).filter((line) => !line.blank);
+          const lines = withoutFencedCode(block.flatMap(commentLines)).filter(
+            (line) => !line.blank,
+          );
           if (lines.length > limit) {
             context.report({
               loc: blockLoc(block),

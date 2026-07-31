@@ -52,6 +52,17 @@ export default [
 ];
 ```
 
+Consider leaving tests alone. Generated tests often earn their comments: a line or two per unit or e2e case documents intent that would otherwise live nowhere. Whether to lint test comments is the maintainer's call; to skip them:
+
+```js
+export default [
+  {
+    ...noCommentSlop.configs.recommended,
+    ignores: ["**/*.test.*", "**/*.spec.*", "**/tests/**", "**/e2e/**"],
+  },
+];
+```
+
 oxlint (`.oxlintrc.json`) has no preset support for JS plugins, so enable each rule from the table below:
 
 ```json

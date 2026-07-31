@@ -32,6 +32,11 @@ test("max-comment-lines", () => {
       "// header line one\n// header line two\n// header line three\n// header line four\n// header line five\nconst a = 1;",
       "/**\n * one\n * two\n * three\n *\n * @param x four\n * five\n */\nfunction f(x) { return x; }",
       "// eslint-disable-next-line no-console\n// oxlint-disable-next-line foo\n// prettier-ignore\n// @ts-expect-error\nconst a = 1;",
+      "/**\n * one\n * two\n * three\n * four\n * five\n * six\n * seven\n * eight\n */\nexport const a = 1;",
+      "/**\n * short\n *\n * @param x one\n * two\n * three\n * four\n * five\n * six\n */\nexport function f(x) { return x; }",
+      "/**\n * short\n *\n * @example\n * a\n * b\n * c\n * d\n * e\n * f\n * g\n * h\n */\nconst a = 1;",
+      "/**\n * short\n *\n * ```js\n * a\n * b\n * c\n * d\n * e\n * f\n * ```\n */\nconst a = 1;",
+      "// one\n// ```\n// a\n// b\n// c\n// d\n// ```\n// two\nconst a = 1;",
     ],
     invalid: [
       {
@@ -50,6 +55,14 @@ test("max-comment-lines", () => {
         code: "const a = 1;\n// one\n// two\nconst b = 2;",
         options: [{ max: 1 }],
         errors: [{ messageId: "tooLong" }],
+      },
+      {
+        code: "/**\n * 1\n * 2\n * 3\n * 4\n * 5\n * 6\n * 7\n * 8\n * 9\n * 10\n * 11\n */\nexport const a = 1;",
+        errors: [{ messageId: "sectionTooLong", data: { lines: "11", max: "10" } }],
+      },
+      {
+        code: "/**\n * short\n *\n * @param x 1\n * 2\n * 3\n * 4\n * 5\n * 6\n * 7\n * 8\n */\nexport function f(x) { return x; }",
+        errors: [{ messageId: "sectionTooLong", data: { lines: "8", max: "7" } }],
       },
     ],
   });
