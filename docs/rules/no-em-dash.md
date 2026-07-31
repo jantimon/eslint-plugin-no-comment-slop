@@ -6,7 +6,7 @@
 
 <!-- end auto-generated rule header -->
 
-Nobody types an em dash into a code comment; keyboards make it hard and muscle memory makes it rare. Language models produce it constantly. A plain hyphen says the same thing.
+Nobody types an em dash into a code comment; keyboards make it hard and muscle memory makes it rare. Language models produce it constantly, as a crutch for gluing two thoughts into one sentence.
 
 There is no autofix. Swapping the dash for a hyphen keeps the same parenthetical grammar with a worse glyph; the cure is rewriting. Split the sentence, or use a comma, colon, or parentheses.
 
