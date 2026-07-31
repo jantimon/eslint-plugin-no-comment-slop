@@ -10,7 +10,7 @@
 
 Comments are notes, not essays. The closing period is a tell of generated prose and adds nothing.
 
-Ellipses (`...`) and abbreviations (`e.g.`, `etc.`, `vs.`) stay allowed.
+Ellipses (`...`) and abbreviations (`e.g.`, `etc.`, `vs.`) stay allowed. Comments with several sentences keep their final period by default: stripping only the last one would leave the prose half punctuated.
 
 ## Examples
 
@@ -28,6 +28,7 @@ Ellipses (`...`) and abbreviations (`e.g.`, `etc.`, `vs.`) stay allowed.
 
 ## Options
 
-| Option         | Type    | Default | Description               |
-| -------------- | ------- | ------- | ------------------------- |
-| `includeJsdoc` | boolean | `true`  | Also check `/** */` blocks |
+| Option                | Type    | Default | Description                                    |
+| --------------------- | ------- | ------- | ---------------------------------------------- |
+| `includeJsdoc`        | boolean | `true`  | Also check `/** */` blocks                     |
+| `ignoreMultiSentence` | boolean | `true`  | Skip comments containing more than one sentence |

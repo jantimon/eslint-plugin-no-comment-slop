@@ -10,6 +10,8 @@
 
 Nobody types an em dash into a code comment; keyboards make it hard and muscle memory makes it rare. Language models produce it constantly. A plain hyphen says the same thing.
 
+The rule targets prose punctuation, not literal characters. An em dash inside backticks or double quotes never fires, so a comment can describe output the code really prints. When your code emits `—`, write it as `` `—` `` in the comment; the autofix would otherwise change which character the comment claims the code prints.
+
 ## Examples
 
 ❌ Incorrect:
@@ -22,6 +24,7 @@ Nobody types an em dash into a code comment; keyboards make it hard and muscle m
 
 ```js
 // caches the value - see the loader
+// prints `—` when a value is not measured
 ```
 
 ## Options

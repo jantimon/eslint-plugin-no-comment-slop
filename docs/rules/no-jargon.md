@@ -14,6 +14,8 @@ The default list: `utilize`, `utilise`, `leverage`, `delve`, `facilitate`, `stre
 
 Where a clean swap exists (`utilize` → `use`) the rule offers an editor suggestion. There is no autofix: wording changes need a human.
 
+Words inside backticks or double quotes never fire, so a comment can talk about the word itself.
+
 ## Examples
 
 ❌ Incorrect:

@@ -10,7 +10,7 @@
 
 Separator rulers and fenced headings are decoration, not information. Use a blank line, or split the file.
 
-The fix removes a ruler when the comment stands alone on its line. Titled banners report without a fix so the heading text is not lost.
+The fix applies when the comment stands alone on its line: a ruler is deleted, a titled banner keeps its heading (`// --- helpers ---` becomes `// helpers`), so no words are lost.
 
 ## Examples
 
@@ -26,6 +26,7 @@ The fix removes a ruler when the comment stands alone on its line. Titled banner
 
 ```js
 // helpers
+const QUOTE = 0x22;
 ```
 
 ## Options

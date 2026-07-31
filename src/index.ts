@@ -216,20 +216,37 @@ const sectionLoc = (section: CommentLine[]): SourceLocation => ({
   },
 });
 
-/** True when nothing but whitespace and an optional shebang precedes the comment */
-function isFileHeader(text: string, comment: CommentToken): boolean {
-  return /^\s*(?:#![^\n]*\n\s*)?$/.test(text.slice(0, comment.range[0]));
+/** True when nothing but whitespace and an optional shebang precedes `start` */
+function isFileHeaderAt(text: string, start: number): boolean {
+  return /^\s*(?:#![^\n]*\n\s*)?$/.test(text.slice(0, start));
 }
 
 /**
- * True when the comment documents the export starting at `exportStart`:
- * nothing but whitespace between them, blank lines included
+ * True when the comment run at `firstStart..end` documents the export at
+ * `exportStart`. Blank lines between them keep the association, except for a
+ * file header: a header with a gap describes the module, not the export
  */
-const documentsExportAt = (text: string, end: number, exportStart: number): boolean =>
-  exportStart >= end && text.slice(end, exportStart).trim() === "";
+function documentsExportAt(
+  text: string,
+  firstStart: number,
+  end: number,
+  exportStart: number,
+): boolean {
+  if (exportStart < end) return false;
+  const between = text.slice(end, exportStart);
+  if (between.trim() !== "") return false;
+  const newlines = between.split("\n").length - 1;
+  if (newlines <= 1) return true;
+  return !isFileHeaderAt(text, firstStart);
+}
 
 /** License and copyright headers stay where they are, whatever follows them */
 const LICENSE_HEADER = /\b(?:copyright|licen[cs]e|spdx)\b|©|\(c\)/i;
+
+/** Blank out backtick and double-quote spans, so quoted literals stay untouched */
+function maskLiterals(value: string): string {
+  return value.replace(/`[^`\n]*`|"[^"\n]*"/g, (span) => " ".repeat(span.length));
+}
 
 const docsUrl = (name: string): string =>
   `https://github.com/jantimon/eslint-plugin-no-comment-slop/blob/main/docs/rules/${name}.md`;
@@ -292,12 +309,12 @@ const maxCommentLines: Rule.RuleModule = {
       "Program:exit"() {
         for (const block of commentBlocks(text, getComments(sourceCode))) {
           if (block.some(isDirective)) continue;
-          const limit = isFileHeader(text, block[0]!) ? headerMax : max;
+          const limit = isFileHeaderAt(text, block[0]!.range[0]) ? headerMax : max;
 
           if (isJsdoc(block[0]!)) {
             const comment = block[0]!;
             const documentsExport = exportStarts.some((start) =>
-              documentsExportAt(text, comment.range[1], start),
+              documentsExportAt(text, comment.range[0], comment.range[1], start),
             );
             const lines = withoutFencedCode(commentLines(comment));
             for (const section of splitSections(lines)) {
@@ -339,7 +356,7 @@ const maxCommentLines: Rule.RuleModule = {
 const RULER = /^([-=*_~#+/\\.<>|:•])\1{2,}$/;
 
 /** A title fenced by punctuation, like `--- helpers ---` or `=== SECTION ===` */
-const TITLED = /^([-=*_~#+/\\|<>]){3,}[^\n]*?\1{3,}$/;
+const TITLED = /^([-=*_~#+/\\|<>])\1{2,}\s*(.*?)\s*\1{3,}$/;
 
 interface BannerOptions {
   flagTitled?: boolean;
@@ -391,7 +408,8 @@ const noBannerComment: Rule.RuleModule = {
             if (line.blank) continue;
 
             const isRuler = ruler.test(line.text);
-            if (!isRuler && !(flagTitled && TITLED.test(line.text))) continue;
+            const titled = !isRuler && flagTitled ? TITLED.exec(line.text) : null;
+            if (!isRuler && !titled) continue;
 
             const report: Parameters<typeof context.report>[0] = {
               loc: {
@@ -406,9 +424,15 @@ const noBannerComment: Rule.RuleModule = {
               !isTrailing(text, comment) &&
               /^[ \t]*(\r?\n|$)/.exec(text.slice(comment.range[1]));
             if (solo) {
-              const start = lineStart(text, comment.range[0]);
-              const end = comment.range[1] + solo[0].length;
-              report.fix = (fixer) => fixer.removeRange([start, end]);
+              const title = titled?.[2];
+              if (title) {
+                report.fix = (fixer) =>
+                  fixer.replaceTextRange([comment.range[0], comment.range[1]], `// ${title}`);
+              } else {
+                const start = lineStart(text, comment.range[0]);
+                const end = comment.range[1] + solo[0].length;
+                report.fix = (fixer) => fixer.removeRange([start, end]);
+              }
             }
 
             context.report(report);
@@ -419,6 +443,10 @@ const noBannerComment: Rule.RuleModule = {
   },
 };
 
+interface TrailingCommentOptions {
+  allowShort?: number;
+}
+
 const noTrailingComment: Rule.RuleModule = {
   meta: {
     type: "suggestion",
@@ -427,12 +455,22 @@ const noTrailingComment: Rule.RuleModule = {
       recommended: true,
       url: docsUrl("no-trailing-comment"),
     },
-    schema: [],
+    schema: [
+      {
+        type: "object",
+        properties: {
+          allowShort: { type: "integer", minimum: 0 },
+        },
+        additionalProperties: false,
+      },
+    ],
     messages: {
       trailing: "Move this comment onto its own line above the code",
     },
   },
   create(context) {
+    const options = (context.options[0] ?? {}) as TrailingCommentOptions;
+    const allowShort = options.allowShort ?? 3;
     const sourceCode = getSource(context);
     const text = sourceText(sourceCode);
 
@@ -440,9 +478,9 @@ const noTrailingComment: Rule.RuleModule = {
       Program() {
         for (const comment of getComments(sourceCode)) {
           if (isDirective(comment)) continue;
-          if (isTrailing(text, comment)) {
-            context.report({ loc: comment.loc, messageId: "trailing" });
-          }
+          if (!isTrailing(text, comment)) continue;
+          if (comment.value.trim().length <= allowShort) continue;
+          context.report({ loc: comment.loc, messageId: "trailing" });
         }
       },
     };
@@ -486,7 +524,12 @@ const preferJsdocForExports: Rule.RuleModule = {
 
         for (const exportStart of exportStarts) {
           const run = lineRuns.find((block) =>
-            documentsExportAt(text, block[block.length - 1]!.range[1], exportStart),
+            documentsExportAt(
+              text,
+              block[0]!.range[0],
+              block[block.length - 1]!.range[1],
+              exportStart,
+            ),
           );
           if (!run || run.some(isDirective)) continue;
           if (run.some((comment) => LICENSE_HEADER.test(comment.value))) continue;
@@ -519,6 +562,7 @@ const ABBREVIATION =
 
 interface TrailingPeriodOptions {
   includeJsdoc?: boolean;
+  ignoreMultiSentence?: boolean;
 }
 
 const noTrailingPeriod: Rule.RuleModule = {
@@ -533,7 +577,10 @@ const noTrailingPeriod: Rule.RuleModule = {
     schema: [
       {
         type: "object",
-        properties: { includeJsdoc: { type: "boolean" } },
+        properties: {
+          includeJsdoc: { type: "boolean" },
+          ignoreMultiSentence: { type: "boolean" },
+        },
         additionalProperties: false,
       },
     ],
@@ -542,6 +589,7 @@ const noTrailingPeriod: Rule.RuleModule = {
   create(context) {
     const options = (context.options[0] ?? {}) as TrailingPeriodOptions;
     const includeJsdoc = options.includeJsdoc ?? true;
+    const ignoreMultiSentence = options.ignoreMultiSentence ?? true;
     const sourceCode = getSource(context);
 
     return {
@@ -558,6 +606,7 @@ const noTrailingPeriod: Rule.RuleModule = {
           const upTo = value.slice(0, i + 1);
           if (upTo.endsWith("..")) continue;
           if (ABBREVIATION.test(upTo)) continue;
+          if (ignoreMultiSentence && /[.!?]\s/.test(value.slice(0, i))) continue;
 
           context.report({
             loc: spanAt(comment, i, 1),
@@ -607,10 +656,11 @@ const noEmDash: Rule.RuleModule = {
       Program() {
         for (const comment of getComments(sourceCode)) {
           if (isDirective(comment)) continue;
+          const masked = maskLiterals(comment.value);
 
           chars.lastIndex = 0;
           let match;
-          while ((match = chars.exec(comment.value)) !== null) {
+          while ((match = chars.exec(masked)) !== null) {
             const index = match.index;
             context.report({
               loc: spanAt(comment, index, 1),
@@ -723,10 +773,11 @@ const noJargon: Rule.RuleModule = {
         for (const comment of getComments(sourceCode)) {
           if (isDirective(comment)) continue;
           if (!includeJsdoc && isJsdoc(comment)) continue;
+          const masked = maskLiterals(comment.value);
 
           pattern.lastIndex = 0;
           let match;
-          while ((match = pattern.exec(comment.value)) !== null) {
+          while ((match = pattern.exec(masked)) !== null) {
             const word = match[0];
             const index = match.index;
             const replacement = SUGGESTIONS[word.toLowerCase()];

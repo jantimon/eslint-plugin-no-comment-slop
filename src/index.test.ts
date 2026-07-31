@@ -33,7 +33,7 @@ test("max-comment-lines", () => {
       "/**\n * one\n * two\n * three\n *\n * @param x four\n * five\n */\nfunction f(x) { return x; }",
       "// eslint-disable-next-line no-console\n// oxlint-disable-next-line foo\n// prettier-ignore\n// @ts-expect-error\nconst a = 1;",
       "/**\n * one\n * two\n * three\n * four\n * five\n * six\n * seven\n * eight\n */\nexport const a = 1;",
-      "/**\n * one\n * two\n * three\n * four\n * five\n * six\n * seven\n * eight\n */\n\nexport const a = 1;",
+      "const b = 2;\n/**\n * one\n * two\n * three\n * four\n * five\n * six\n * seven\n * eight\n */\n\nexport const a = 1;",
       "/**\n * short\n *\n * @param x one\n * two\n * three\n * four\n * five\n * six\n */\nexport function f(x) { return x; }",
       "/**\n * short\n *\n * @example\n * a\n * b\n * c\n * d\n * e\n * f\n * g\n * h\n */\nconst a = 1;",
       "/**\n * short\n *\n * ```js\n * a\n * b\n * c\n * d\n * e\n * f\n * ```\n */\nconst a = 1;",
@@ -85,7 +85,12 @@ test("no-banner-comment", () => {
       {
         code: "// --- helpers ---\nconst a = 1;",
         errors: [{ messageId: "titled" }],
-        output: "const a = 1;",
+        output: "// helpers\nconst a = 1;",
+      },
+      {
+        code: "// ==== DOM setup (one-time geometry) ====\nconst a = 1;",
+        errors: [{ messageId: "titled" }],
+        output: "// DOM setup (one-time geometry)\nconst a = 1;",
       },
       {
         code: "/* ========== */\nconst a = 1;",
@@ -107,10 +112,17 @@ test("no-trailing-comment", () => {
       "// above the code\nconst a = 1;",
       "const a = 1; // eslint-disable-line no-console",
       "const a = 1;\n/* standalone */",
+      'const QUOTE = 0x22; // "',
+      "const COMMA = 0x2c; // ,",
     ],
     invalid: [
       {
         code: "const a = 1; // trailing",
+        errors: [{ messageId: "trailing" }],
+      },
+      {
+        code: 'const QUOTE = 0x22; // "',
+        options: [{ allowShort: 0 }],
         errors: [{ messageId: "trailing" }],
       },
       {
@@ -131,6 +143,7 @@ test("prefer-jsdoc-for-exports", () => {
       "// SPDX-License-Identifier: MIT\nexport const a = 1;",
       "// note\n\n/** documented */\nexport const a = 1;",
       "// about b\nconst b = 2;\n\nexport const a = 1;",
+      "// module header describing the file\n\nexport const a = 1;",
     ],
     invalid: [
       {
@@ -144,9 +157,9 @@ test("prefer-jsdoc-for-exports", () => {
         output: "/**\n * line one\n * line two\n */\nexport default function f() {}",
       },
       {
-        code: "// docs with a gap\n\nexport const a = 1;",
+        code: "const b = 2;\n\n// docs with a gap\n\nexport const a = 1;",
         errors: [{ messageId: "useJsdoc" }],
-        output: "/**\n * docs with a gap\n */\nexport const a = 1;",
+        output: "const b = 2;\n\n/**\n * docs with a gap\n */\nexport const a = 1;",
       },
       {
         code: "function wrap() {}\n\n  // indented docs\n\n  export const a = 1;",
@@ -164,6 +177,7 @@ test("no-trailing-period", () => {
       "// trailing ellipsis...\nconst a = 1;",
       "// see e.g.\nconst a = 1;",
       "// retries etc.\nconst a = 1;",
+      "// First sentence here. Second sentence here.\nconst a = 1;",
       {
         code: "/** jsdoc sentence. */\nconst a = 1;",
         options: [{ includeJsdoc: false }],
@@ -180,6 +194,12 @@ test("no-trailing-period", () => {
         errors: [{ messageId: "period" }],
         output: "/** jsdoc sentence */\nconst a = 1;",
       },
+      {
+        code: "// First sentence here. Second sentence here.\nconst a = 1;",
+        options: [{ ignoreMultiSentence: false }],
+        errors: [{ messageId: "period" }],
+        output: "// First sentence here. Second sentence here\nconst a = 1;",
+      },
     ],
   });
 });
@@ -189,6 +209,8 @@ test("no-em-dash", () => {
     valid: [
       "// plain hyphen - fine\nconst a = 1;",
       "// en dash – allowed by default\nconst a = 1;",
+      "// prints `—` when a value is not measured\nconst a = 1;",
+      '// shows "—" for gaps in the table\nconst a = 1;',
     ],
     invalid: [
       {
@@ -216,6 +238,7 @@ test("no-jargon", () => {
     valid: [
       "// use the helper\nconst a = 1;",
       "// the leverageRatio field stays untouched\nconst leverageRatio = 1;",
+      "// the word `robust` appears quoted here\nconst a = 1;",
       {
         code: "// robust is allowed here\nconst a = 1;",
         options: [{ allow: ["robust"] }],

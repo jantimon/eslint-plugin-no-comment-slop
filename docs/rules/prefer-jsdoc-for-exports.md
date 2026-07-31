@@ -10,7 +10,7 @@
 
 Editors show `/** */` blocks in hover tooltips and completions. A `//` comment above an export is documentation nobody sees at the call site.
 
-The fix converts the `//` run into a JSDoc block, keeping the indentation and closing any blank-line gap to the export. Blank lines between the comment and the export do not break the association; code or another comment does. License and copyright headers (`Copyright`, `License`, `SPDX`, `©`) are never converted.
+The fix converts the `//` run into a JSDoc block, keeping the indentation and closing any blank-line gap to the export. Blank lines between the comment and the export do not break the association; code or another comment does. Two comment kinds are never converted: license and copyright headers (`Copyright`, `License`, `SPDX`, `©`), and a file header separated from the export by a blank line, because that comment describes the module, not the export below it.
 
 ## Examples
 
