@@ -10,7 +10,7 @@ AI-generated code loves to explain itself at length. A comment that needs six li
 
 A run of `//` lines on consecutive lines counts as one comment. JSDoc blocks get a budget per section: a blank line ends a section and an `@tag` starts a new one, so a description and its tags are counted apart. Fence lines (`/**`, `*/`, bare `*` gutters) never count. File headers get their own, larger budget.
 
-JSDoc directly above an `export` gets more room: public API earns real documentation. Its description may run to `exportDescriptionMax` lines and each `@tag` section to `exportTagMax`. A blank line between the comment and the export breaks that association.
+JSDoc above an `export` gets more room: public API earns real documentation. Its description may run to `exportDescriptionMax` lines and each `@tag` section to `exportTagMax`. Blank lines between the comment and the export do not break the association; code or another comment does.
 
 `@example` sections and fenced code blocks (` ``` `) never count, whatever their length.
 

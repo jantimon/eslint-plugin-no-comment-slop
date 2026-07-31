@@ -11,3 +11,7 @@ export const twice = () => answer * 2;
 // line four
 export const ignored = 1;
 //#endregion
+
+// separated docs
+
+export const later = answer;

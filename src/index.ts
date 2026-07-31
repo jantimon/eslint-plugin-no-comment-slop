@@ -38,6 +38,7 @@ const DIRECTIVE = new RegExp(
     /^\s*(?:prettier|deno-lint|deno-fmt)-ignore/,
     /^\s*(?:istanbul|c8|v8|node|jest|vitest)\s+ignore/,
     /^\s*(?:globals?|exported)\s/,
+    /^\s*SPDX-License-Identifier/,
     /^\s*\/\s*<(?:reference|amd-module|amd-dependency)\b/,
     /^\s*webpack[A-Z]/,
   ]
@@ -220,6 +221,16 @@ function isFileHeader(text: string, comment: CommentToken): boolean {
   return /^\s*(?:#![^\n]*\n\s*)?$/.test(text.slice(0, comment.range[0]));
 }
 
+/**
+ * True when the comment documents the export starting at `exportStart`:
+ * nothing but whitespace between them, blank lines included
+ */
+const documentsExportAt = (text: string, end: number, exportStart: number): boolean =>
+  exportStart >= end && text.slice(end, exportStart).trim() === "";
+
+/** License and copyright headers stay where they are, whatever follows them */
+const LICENSE_HEADER = /\b(?:copyright|licen[cs]e|spdx)\b|©|\(c\)/i;
+
 const docsUrl = (name: string): string =>
   `https://github.com/jantimon/eslint-plugin-no-comment-slop/blob/main/docs/rules/${name}.md`;
 
@@ -268,10 +279,10 @@ const maxCommentLines: Rule.RuleModule = {
     const exportTagMax = options.exportTagMax ?? 7;
     const sourceCode = getSource(context);
     const text = sourceText(sourceCode);
-    const exportLines = new Set<number>();
+    const exportStarts: number[] = [];
 
-    const collect = (node: { loc?: SourceLocation | null | undefined }): void => {
-      if (node.loc) exportLines.add(node.loc.start.line);
+    const collect = (node: { range?: [number, number] | null | undefined }): void => {
+      if (node.range) exportStarts.push(node.range[0]);
     };
 
     return {
@@ -285,7 +296,9 @@ const maxCommentLines: Rule.RuleModule = {
 
           if (isJsdoc(block[0]!)) {
             const comment = block[0]!;
-            const documentsExport = exportLines.has(comment.loc.end.line + 1);
+            const documentsExport = exportStarts.some((start) =>
+              documentsExportAt(text, comment.range[1], start),
+            );
             const lines = withoutFencedCode(commentLines(comment));
             for (const section of splitSections(lines)) {
               if (isExampleSection(section)) continue;
@@ -454,10 +467,10 @@ const preferJsdocForExports: Rule.RuleModule = {
   create(context) {
     const sourceCode = getSource(context);
     const text = sourceText(sourceCode);
-    const exports: { loc: SourceLocation }[] = [];
+    const exportStarts: number[] = [];
 
-    const collect = (node: { loc?: SourceLocation | null | undefined }): void => {
-      if (node.loc) exports.push({ loc: node.loc });
+    const collect = (node: { range?: [number, number] | null | undefined }): void => {
+      if (node.range) exportStarts.push(node.range[0]);
     };
 
     return {
@@ -465,21 +478,22 @@ const preferJsdocForExports: Rule.RuleModule = {
       ExportDefaultDeclaration: collect,
 
       "Program:exit"() {
-        if (exports.length === 0) return;
+        if (exportStarts.length === 0) return;
 
         const lineRuns = commentBlocks(text, getComments(sourceCode)).filter(
           (block) => block[0]!.type === "Line" && !isTrailing(text, block[0]!),
         );
 
-        for (const node of exports) {
-          const run = lineRuns.find(
-            (block) => block[block.length - 1]!.loc.end.line === node.loc.start.line - 1,
+        for (const exportStart of exportStarts) {
+          const run = lineRuns.find((block) =>
+            documentsExportAt(text, block[block.length - 1]!.range[1], exportStart),
           );
           if (!run || run.some(isDirective)) continue;
+          if (run.some((comment) => LICENSE_HEADER.test(comment.value))) continue;
 
           const first = run[0]!;
-          const last = run[run.length - 1]!;
           const indent = text.slice(lineStart(text, first.range[0]), first.range[0]);
+          const exportIndent = text.slice(lineStart(text, exportStart), exportStart);
           const body = run
             .map((comment) => `${indent} * ${comment.value.trim()}`.trimEnd())
             .join("\n");
@@ -489,8 +503,8 @@ const preferJsdocForExports: Rule.RuleModule = {
             messageId: "useJsdoc",
             fix: (fixer) =>
               fixer.replaceTextRange(
-                [first.range[0], last.range[1]],
-                `/**\n${body}\n${indent} */`,
+                [first.range[0], exportStart],
+                `/**\n${body}\n${indent} */\n${exportIndent}`,
               ),
           });
         }

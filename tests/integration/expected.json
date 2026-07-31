@@ -11,5 +11,6 @@
   { "rule": "no-foreign-syntax", "line": 6 },
   { "rule": "prefer-jsdoc-for-exports", "line": 6 },
   { "rule": "no-foreign-syntax", "line": 7 },
-  { "rule": "no-foreign-syntax", "line": 13 }
+  { "rule": "no-foreign-syntax", "line": 13 },
+  { "rule": "prefer-jsdoc-for-exports", "line": 15 }
 ]

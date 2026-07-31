@@ -33,6 +33,7 @@ test("max-comment-lines", () => {
       "/**\n * one\n * two\n * three\n *\n * @param x four\n * five\n */\nfunction f(x) { return x; }",
       "// eslint-disable-next-line no-console\n// oxlint-disable-next-line foo\n// prettier-ignore\n// @ts-expect-error\nconst a = 1;",
       "/**\n * one\n * two\n * three\n * four\n * five\n * six\n * seven\n * eight\n */\nexport const a = 1;",
+      "/**\n * one\n * two\n * three\n * four\n * five\n * six\n * seven\n * eight\n */\n\nexport const a = 1;",
       "/**\n * short\n *\n * @param x one\n * two\n * three\n * four\n * five\n * six\n */\nexport function f(x) { return x; }",
       "/**\n * short\n *\n * @example\n * a\n * b\n * c\n * d\n * e\n * f\n * g\n * h\n */\nconst a = 1;",
       "/**\n * short\n *\n * ```js\n * a\n * b\n * c\n * d\n * e\n * f\n * ```\n */\nconst a = 1;",
@@ -125,8 +126,11 @@ test("prefer-jsdoc-for-exports", () => {
     valid: [
       "/** documented */\nexport const a = 1;",
       "export const a = 1;",
-      "// unrelated\n\nexport const a = 1;",
       "// eslint-disable-next-line no-console\nexport const a = 1;",
+      "// Copyright 2026 Jan Nicklas\n\nexport const a = 1;",
+      "// SPDX-License-Identifier: MIT\nexport const a = 1;",
+      "// note\n\n/** documented */\nexport const a = 1;",
+      "// about b\nconst b = 2;\n\nexport const a = 1;",
     ],
     invalid: [
       {
@@ -138,6 +142,16 @@ test("prefer-jsdoc-for-exports", () => {
         code: "// line one\n// line two\nexport default function f() {}",
         errors: [{ messageId: "useJsdoc" }],
         output: "/**\n * line one\n * line two\n */\nexport default function f() {}",
+      },
+      {
+        code: "// docs with a gap\n\nexport const a = 1;",
+        errors: [{ messageId: "useJsdoc" }],
+        output: "/**\n * docs with a gap\n */\nexport const a = 1;",
+      },
+      {
+        code: "function wrap() {}\n\n  // indented docs\n\n  export const a = 1;",
+        errors: [{ messageId: "useJsdoc" }],
+        output: "function wrap() {}\n\n  /**\n   * indented docs\n   */\n  export const a = 1;",
       },
     ],
   });
