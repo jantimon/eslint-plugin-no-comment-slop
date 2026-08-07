@@ -100,6 +100,7 @@ Every rule is part of the `recommended` config. The 🔧 fixes are mechanical: d
 | Name                                                               | Description                                                         | 🔧 | 💡 |
 | :----------------------------------------------------------------- | :------------------------------------------------------------------ | :- | :- |
 | [max-comment-lines](docs/rules/max-comment-lines.md)               | Limit how many lines a comment may span                             |    |    |
+| [multiline-jsdoc-format](docs/rules/multiline-jsdoc-format.md)     | Require /** and */ on their own lines in a multi-line JSDoc comment | 🔧 |    |
 | [no-banner-comment](docs/rules/no-banner-comment.md)               | Disallow ASCII separator and banner comments                        | 🔧 |    |
 | [no-em-dash](docs/rules/no-em-dash.md)                             | Disallow em dashes (and optionally en dashes) in comments           |    |    |
 | [no-foreign-syntax](docs/rules/no-foreign-syntax.md)               | Disallow comment syntax imported from other languages               |    |    |
@@ -111,6 +112,98 @@ Every rule is part of the `recommended` config. The 🔧 fixes are mechanical: d
 | [require-member-docs](docs/rules/require-member-docs.md)           | Require docs on every member once most of a type is documented      |    |    |
 
 <!-- end auto-generated rules list -->
+
+## What it catches
+
+One flagged example per rule. Each rule doc has the matching fix.
+
+[`max-comment-lines`](docs/rules/max-comment-lines.md) — a wall of prose above one call:
+
+```js
+// This helper computes the value by first checking the cache,
+// then falling back to the network, then retrying twice with
+// exponential backoff, and finally giving up and returning null
+// so the caller can decide what to do next.
+const value = load();
+```
+
+[`multiline-jsdoc-format`](docs/rules/multiline-jsdoc-format.md) — text hanging off the `/**` line:
+
+```js
+/** Stamped into every artifact so files are self-describing.
+ * Bump only on a breaking change */
+export const schemaVersion = 3;
+```
+
+[`no-banner-comment`](docs/rules/no-banner-comment.md) — ASCII rulers and banners:
+
+```js
+// ============================
+// --- helpers ---
+/* ************************** */
+```
+
+[`no-em-dash`](docs/rules/no-em-dash.md) — the em dash aside:
+
+```js
+// caches the value — see the loader
+```
+
+[`no-foreign-syntax`](docs/rules/no-foreign-syntax.md) — Rust and C# doc habits in JavaScript:
+
+```js
+/// Returns the user id
+// <summary>Gets the id</summary>
+//#region helpers
+```
+
+[`no-jargon`](docs/rules/no-jargon.md) — inflated vocabulary:
+
+```js
+// utilize the robust cache to streamline lookups
+```
+
+[`no-trailing-comment`](docs/rules/no-trailing-comment.md) — a comment restating the line it sits on:
+
+```js
+const retries = 3; // number of retries
+```
+
+[`no-trailing-period`](docs/rules/no-trailing-period.md) — a sentence-ending period on a one-line comment:
+
+```js
+// waits for the lock before writing.
+```
+
+[`prefer-jsdoc-for-exports`](docs/rules/prefer-jsdoc-for-exports.md) — `//` above an export, which no editor shows on hover:
+
+```js
+// Parses the config file
+export function parseConfig(path) {}
+```
+
+[`prefer-jsdoc-for-members`](docs/rules/prefer-jsdoc-for-members.md) — the same for a member:
+
+```ts
+interface RecordOptions {
+  // run without a window
+  headless: boolean;
+}
+```
+
+[`require-member-docs`](docs/rules/require-member-docs.md) — one member left out once the rest are documented:
+
+```ts
+interface RecordOptions {
+  /** module to load */
+  module: string;
+  /** entry function name */
+  fn: string;
+  /** browser binary */
+  browser: string;
+  url: string;
+}
+```
 
 ## License
 

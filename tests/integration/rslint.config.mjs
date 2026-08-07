@@ -11,6 +11,7 @@ export default [
       "no-comment-slop/prefer-jsdoc-for-exports": "error",
       "no-comment-slop/prefer-jsdoc-for-members": "error",
       "no-comment-slop/require-member-docs": "error",
+      "no-comment-slop/multiline-jsdoc-format": "error",
       "no-comment-slop/no-trailing-period": "error",
       "no-comment-slop/no-em-dash": "error",
       "no-comment-slop/no-jargon": "error",
