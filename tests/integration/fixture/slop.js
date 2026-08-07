@@ -15,3 +15,7 @@ export const ignored = 1;
 // separated docs
 
 export const later = answer;
+
+/** a doc opener with text on it
+ * and a second line */
+export const hanging = 1;

@@ -25,11 +25,11 @@ const rule = (name: string) => {
 test("plugin shape", () => {
   assert.equal(plugin.meta.name, "eslint-plugin-no-comment-slop");
   assert.equal(plugin.meta.namespace, "no-comment-slop");
-  assert.equal(Object.keys(plugin.rules).length, 10);
+  assert.equal(Object.keys(plugin.rules).length, 11);
   const recommended = (plugin.configs as Record<string, { rules: Record<string, string> }>)
     .recommended;
   assert.ok(recommended);
-  assert.equal(Object.keys(recommended.rules).length, 10);
+  assert.equal(Object.keys(recommended.rules).length, 11);
   assert.ok(defaultJargonWords.includes("utilize"));
 });
 
@@ -221,6 +221,45 @@ test("prefer-jsdoc-for-members", () => {
         code: "enum Mode {\n  // fast path\n  Fast,\n  Slow,\n}",
         errors: [{ messageId: "useJsdoc" }],
         output: "enum Mode {\n  /** fast path */\n  Fast,\n  Slow,\n}",
+      },
+    ],
+  });
+});
+
+test("multiline-jsdoc-format", () => {
+  ruleTester.run("multiline-jsdoc-format", rule("multiline-jsdoc-format"), {
+    valid: [
+      "/** one liner */\nconst a = 1;",
+      "/**\n * one\n * two\n */\nconst a = 1;",
+      "/**\n * one\n *\n * @param x two\n */\nfunction f(x) { return x; }",
+      "/* plain block\n   comment */\nconst a = 1;",
+      "// one\n// two\nconst a = 1;",
+      "/**\n * @param {string} x\n * @returns {string}\n */\nfunction f(x) { return x; }",
+    ],
+    invalid: [
+      {
+        code: "/** one\n * two\n */\nconst a = 1;",
+        errors: [{ messageId: "openText", line: 1, column: 1 }],
+        output: "/**\n * one\n * two\n */\nconst a = 1;",
+      },
+      {
+        code: "/**\n * one\n * two */\nconst a = 1;",
+        errors: [{ messageId: "closeText", line: 3, column: 8 }],
+        output: "/**\n * one\n * two\n */\nconst a = 1;",
+      },
+      {
+        code: "/** one\n * two */\nconst a = 1;",
+        errors: [{ messageId: "openText" }, { messageId: "closeText" }],
+        output: "/**\n * one\n * two\n */\nconst a = 1;",
+      },
+      {
+        code: "function wrap() {\n  /** one\n   * two */\n  return 1;\n}",
+        errors: [{ messageId: "openText" }, { messageId: "closeText" }],
+        output: "function wrap() {\n  /**\n   * one\n   * two\n   */\n  return 1;\n}",
+      },
+      {
+        code: "const a = 1; /** trailing one\n * two */",
+        errors: [{ messageId: "openText" }, { messageId: "closeText" }],
       },
     ],
   });

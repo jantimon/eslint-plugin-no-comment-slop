@@ -556,6 +556,78 @@ const preferJsdocForExports: Rule.RuleModule = {
   },
 };
 
+/** The `*` gutter of a JSDoc line, plus the spaces around it */
+const GUTTER = /^[ \t]*\**[ \t]*/;
+
+const multilineJsdocFormat: Rule.RuleModule = {
+  meta: {
+    type: "suggestion",
+    fixable: "code",
+    docs: {
+      description: "Require /** and */ on their own lines in a multi-line JSDoc comment",
+      recommended: true,
+      url: docsUrl("multiline-jsdoc-format"),
+    },
+    schema: [],
+    messages: {
+      openText:
+        "Break the line after /**: a one-liner stays on one line, anything longer opens with /** alone",
+      closeText:
+        "Put */ on its own line: a one-liner stays on one line, anything longer closes with */ alone",
+    },
+  },
+  create(context) {
+    const sourceCode = getSource(context);
+    const text = sourceText(sourceCode);
+
+    return {
+      Program() {
+        for (const comment of getComments(sourceCode)) {
+          if (!isJsdoc(comment) || isDirective(comment)) continue;
+
+          const value = comment.value;
+          const firstBreak = value.indexOf("\n");
+          if (firstBreak === -1) continue;
+
+          const indent = text.slice(lineStart(text, comment.range[0]), comment.range[0]);
+          const ownLine = /^[ \t]*$/.test(indent);
+
+          const head = value.slice(1, firstBreak);
+          const textStart = 1 + GUTTER.exec(head)![0].length;
+          if (value.slice(textStart, firstBreak).trim() !== "") {
+            const report: Parameters<typeof context.report>[0] = {
+              loc: { start: comment.loc.start, end: locAt(comment, textStart) },
+              messageId: "openText",
+            };
+            if (ownLine) {
+              report.fix = (fixer) =>
+                fixer.replaceTextRange(rangeAt(comment, 1, textStart - 1), `\n${indent} * `);
+            }
+            context.report(report);
+          }
+
+          const tail = value.slice(value.lastIndexOf("\n") + 1);
+          if (tail.slice(GUTTER.exec(tail)![0].length).trim() !== "") {
+            const textEnd = value.trimEnd().length;
+            const report: Parameters<typeof context.report>[0] = {
+              loc: { start: locAt(comment, value.length), end: comment.loc.end },
+              messageId: "closeText",
+            };
+            if (ownLine) {
+              report.fix = (fixer) =>
+                fixer.replaceTextRange(
+                  rangeAt(comment, textEnd, value.length - textEnd),
+                  `\n${indent} `,
+                );
+            }
+            context.report(report);
+          }
+        }
+      },
+    };
+  },
+};
+
 /** Endings where the final `.` is part of the token, not sentence punctuation */
 const ABBREVIATION =
   /(?:\be\.g|\bi\.e|\betc|\bvs|\bapprox|\bapp|\bmax|\bmin|\bInc|\bLtd|\bal|\bAve|\bcf|\bfig|\bref)\.$/i;
@@ -1074,6 +1146,7 @@ const plugin = {
     "prefer-jsdoc-for-exports": preferJsdocForExports,
     "prefer-jsdoc-for-members": noJsdocMemberComment,
     "require-member-docs": requireMemberDocs,
+    "multiline-jsdoc-format": multilineJsdocFormat,
     "no-trailing-period": noTrailingPeriod,
     "no-em-dash": noEmDash,
     "no-jargon": noJargon,
@@ -1093,6 +1166,7 @@ Object.assign(plugin.configs, {
       "no-comment-slop/prefer-jsdoc-for-exports": "error",
       "no-comment-slop/prefer-jsdoc-for-members": "error",
       "no-comment-slop/require-member-docs": "error",
+      "no-comment-slop/multiline-jsdoc-format": "error",
       "no-comment-slop/no-trailing-period": "error",
       "no-comment-slop/no-em-dash": "error",
       "no-comment-slop/no-jargon": "error",
