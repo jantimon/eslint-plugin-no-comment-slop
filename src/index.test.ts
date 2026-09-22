@@ -25,11 +25,11 @@ const rule = (name: string) => {
 test("plugin shape", () => {
   assert.equal(plugin.meta.name, "eslint-plugin-no-comment-slop");
   assert.equal(plugin.meta.namespace, "no-comment-slop");
-  assert.equal(Object.keys(plugin.rules).length, 11);
+  assert.equal(Object.keys(plugin.rules).length, 12);
   const recommended = (plugin.configs as Record<string, { rules: Record<string, string> }>)
     .recommended;
   assert.ok(recommended);
-  assert.equal(Object.keys(recommended.rules).length, 11);
+  assert.equal(Object.keys(recommended.rules).length, 12);
   assert.ok(defaultJargonWords.includes("utilize"));
 });
 
@@ -370,6 +370,54 @@ test("no-em-dash", () => {
       {
         code: "// two — dashes — here\nconst a = 1;",
         errors: [{ messageId: "dash" }, { messageId: "dash" }],
+      },
+    ],
+  });
+});
+
+test("no-prose-semicolon", () => {
+  ruleTester.run("no-prose-semicolon", rule("no-prose-semicolon"), {
+    valid: [
+      "// caches the value, see the loader\nconst a = 1;",
+      "// console.log(1);\nconst a = 1;",
+      "// console.log(2); // foo\nconst a = 1;",
+      "// for (let i = 0; i < n; i++) {\nconst a = 1;",
+      "/*\n * for (let i = 0; i < n; i++) {\n */\nconst a = 1;",
+      "// sends `text/html; charset=utf-8` back\nconst a = 1;",
+      '// sends "text/html; charset=utf-8" back\nconst a = 1;',
+      "// Content-Type: text/html; charset=utf-8\nconst a = 1;",
+      "/** @returns {{ok: boolean; count: number}} the parsed row */\nconst a = 1;",
+      "// see [the docs](https://x.test/a?b=1;c=2) for the list\nconst a = 1;",
+      "// see ![chart](https://x.test/a.png?w=1;h=2) above\nconst a = 1;",
+      "// see https://x.test/a?b=1;c=2 for the list\nconst a = 1;",
+      "// use &nbsp; between the columns\nconst a = 1;",
+      "// prints &#8212; for gaps\nconst a = 1;",
+      "// winks back with ;) on success\nconst a = 1;",
+      "// decodes data:image/png;base64, payloads\nconst a = 1;",
+      "// let a; let b\nconst a = 1;",
+      "/**\n * ```\n * doIt; next\n * ```\n */\nconst a = 1;",
+      "// @ts-expect-error legacy shim; remove once the loader is typed\nconst a = 1;",
+    ],
+    invalid: [
+      {
+        code: "// warms the cache; the loader skips it\nconst a = 1;",
+        errors: [{ messageId: "semicolon", line: 1, column: 19 }],
+      },
+      {
+        code: "// hello ; you\nconst a = 1;",
+        errors: [{ messageId: "semicolon" }],
+      },
+      {
+        code: "/* warms the cache; the loader skips it */\nconst a = 1;",
+        errors: [{ messageId: "semicolon" }],
+      },
+      {
+        code: "/**\n * warms the cache; the loader skips it\n */\nconst a = 1;",
+        errors: [{ messageId: "semicolon", line: 2 }],
+      },
+      {
+        code: "// one clause; another clause; a third\nconst a = 1;",
+        errors: [{ messageId: "semicolon" }, { messageId: "semicolon" }],
       },
     ],
   });

@@ -23,8 +23,8 @@ interface PortableSourceCode {
 
 /**
  * Machine-readable instruction comments, skipped by every rule. Only the
- * TypeScript directives start with `@`; eslint, tslint and oxlint directives
- * do not, so matching on `@` alone would miss most of them
+ * TypeScript directives start with `@`. The eslint, tslint and oxlint ones do
+ * not, so matching on `@` alone would miss most of them
  */
 const DIRECTIVE = new RegExp(
   [
@@ -744,7 +744,100 @@ const noEmDash: Rule.RuleModule = {
   },
 };
 
-/** The undeniable tells only; anything debatable stays out of the default list */
+/** Markdown link and image targets, reference links, autolinks and bare URLs */
+const MARKDOWN_TARGET =
+  /!?\[[^\]\n]*\]\([^)\n]*\)|!?\[[^\]\n]*\]\[[^\]\n]*\]|<[^>\s]+>|\b(?:https?:\/\/|www\.)\S+/g;
+
+const maskMarkdown = (value: string): string =>
+  value.replace(MARKDOWN_TARGET, (span) => " ".repeat(span.length));
+
+/** `&nbsp` or `&#8212` ending right where the semicolon starts */
+const HTML_ENTITY = /&#?[0-9a-z]+$/i;
+
+/** Punctuation that only code carries, so the semicolons on the line end statements */
+const CODE_PUNCTUATION = /[=(){}[\]]/;
+
+const DECLARATION = /^(?:const|let|var|function|class|import|export)\b/;
+
+/** A word, optional space, then the semicolon: the shape of a prose clause */
+const CLAUSE_BEFORE = /[\p{L}\p{N}_]\s*$/u;
+
+/** Whitespace and then a letter: the second clause of the sentence */
+const CLAUSE_AFTER = /^\s+\p{L}/u;
+
+/**
+ * Flags the semicolon that glues two thoughts into one sentence. It fires
+ * only where a word precedes it and a letter follows the gap, so `doIt();`,
+ * `;)` and `data:image/png;base64` stay quiet
+ *
+ * Skipped as code: backtick and double-quote spans, fenced blocks, any line
+ * carrying `=` or a bracket (a `for` header, a `{a: string; b: number}` type,
+ * `text/html; charset=utf-8`, a cookie string) and any line opening with
+ * const, let, var, function, class, import or export
+ *
+ * Skipped as markup: markdown links, images, autolinks, bare URLs and HTML
+ * entities such as `&nbsp;` or `&#8212;`
+ */
+const noProseSemicolon: Rule.RuleModule = {
+  meta: {
+    type: "suggestion",
+    docs: {
+      description: "Disallow semicolons that join two clauses in comment prose",
+      recommended: true,
+      url: docsUrl("no-prose-semicolon"),
+    },
+    schema: [],
+    messages: {
+      semicolon:
+        "Rewrite this without a semicolon: start a new sentence, or use a comma or parentheses. For code in a comment, wrap it in backticks",
+    },
+  },
+  create(context) {
+    const sourceCode = getSource(context);
+
+    return {
+      Program() {
+        for (const comment of getComments(sourceCode)) {
+          if (isDirective(comment)) continue;
+
+          const raw = comment.value.split("\n");
+          const masked = maskMarkdown(maskLiterals(comment.value)).split("\n");
+          let offset = 0;
+          let fenced = false;
+
+          for (const [index, line] of masked.entries()) {
+            const start = offset;
+            offset += line.length + 1;
+
+            if (raw[index]!.replace(GUTTER, "").startsWith("```")) {
+              fenced = !fenced;
+              continue;
+            }
+            if (fenced) continue;
+
+            const gutter = GUTTER.exec(line)![0].length;
+            const text = line.slice(gutter);
+            if (CODE_PUNCTUATION.test(text) || DECLARATION.test(text)) continue;
+
+            for (let i = text.indexOf(";"); i !== -1; i = text.indexOf(";", i + 1)) {
+              const before = text.slice(0, i);
+              if (!CLAUSE_BEFORE.test(before)) continue;
+              if (HTML_ENTITY.test(before)) continue;
+              if (!CLAUSE_AFTER.test(text.slice(i + 1))) continue;
+
+              context.report({
+                loc: spanAt(comment, start + gutter + i, 1),
+                messageId: "semicolon",
+              });
+            }
+          }
+        }
+      },
+    };
+  },
+};
+
+/** Only the undeniable tells. Anything debatable stays out of the default list */
 export const defaultJargonWords = [
   "utilize",
   "utilise",
@@ -899,7 +992,7 @@ interface MemberInfo {
 const memberInfo = (node: AstNode): MemberInfo | null =>
   node.range && node.loc ? { range: node.range, loc: node.loc } : null;
 
-/** Class members that can carry docs; constructors and static blocks cannot */
+/** Class members that can carry docs. Constructors and static blocks cannot */
 const classMembers = (body: AstNode): AstNode[] =>
   asArray(body.body).filter(
     (member) => member.kind !== "constructor" && member.type !== "StaticBlock",
@@ -1149,6 +1242,7 @@ const plugin = {
     "multiline-jsdoc-format": multilineJsdocFormat,
     "no-trailing-period": noTrailingPeriod,
     "no-em-dash": noEmDash,
+    "no-prose-semicolon": noProseSemicolon,
     "no-jargon": noJargon,
     "no-foreign-syntax": noForeignSyntax,
   },
@@ -1169,6 +1263,7 @@ Object.assign(plugin.configs, {
       "no-comment-slop/multiline-jsdoc-format": "error",
       "no-comment-slop/no-trailing-period": "error",
       "no-comment-slop/no-em-dash": "error",
+      "no-comment-slop/no-prose-semicolon": "error",
       "no-comment-slop/no-jargon": "error",
       "no-comment-slop/no-foreign-syntax": "error",
     },
