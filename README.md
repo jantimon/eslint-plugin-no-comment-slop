@@ -90,7 +90,7 @@ export default [
 
 ## Rules
 
-Every rule is part of the `recommended` config. The 🔧 fixes are mechanical: delete a banner, drop a period, turn `//` into JSDoc. `--fix` never rewrites your wording; `no-jargon` and `no-em-dash` report with guidance instead.
+Every rule is part of the `recommended` config. The 🔧 fixes are mechanical: delete a banner, drop a period, turn `//` into JSDoc. `--fix` never rewrites your wording. `no-jargon`, `no-em-dash` and `no-prose-semicolon` report with guidance instead.
 
 <!-- begin auto-generated rules list -->
 
@@ -105,6 +105,7 @@ Every rule is part of the `recommended` config. The 🔧 fixes are mechanical: d
 | [no-em-dash](docs/rules/no-em-dash.md)                             | Disallow em dashes (and optionally en dashes) in comments           |    |    |
 | [no-foreign-syntax](docs/rules/no-foreign-syntax.md)               | Disallow comment syntax imported from other languages               |    |    |
 | [no-jargon](docs/rules/no-jargon.md)                               | Disallow inflated vocabulary in comments                            |    | 💡 |
+| [no-prose-semicolon](docs/rules/no-prose-semicolon.md)             | Disallow semicolons that join two clauses in comment prose          |    |    |
 | [no-trailing-comment](docs/rules/no-trailing-comment.md)           | Disallow comments on the same line as code                          |    |    |
 | [no-trailing-period](docs/rules/no-trailing-period.md)             | Disallow a trailing period at the end of a comment                  | 🔧 |    |
 | [prefer-jsdoc-for-exports](docs/rules/prefer-jsdoc-for-exports.md) | Require /** */ rather than // for the comment documenting an export | 🔧 |    |
@@ -161,6 +162,12 @@ export const schemaVersion = 3;
 
 ```js
 // utilize the robust cache to streamline lookups
+```
+
+[`no-prose-semicolon`](docs/rules/no-prose-semicolon.md) the semicolon that welds two thoughts together:
+
+```js
+// warms the cache; the loader skips it on the next pass
 ```
 
 [`no-trailing-comment`](docs/rules/no-trailing-comment.md) — a comment restating the line it sits on:

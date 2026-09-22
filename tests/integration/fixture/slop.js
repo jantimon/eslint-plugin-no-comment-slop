@@ -19,3 +19,5 @@ export const later = answer;
 /** a doc opener with text on it
  * and a second line */
 export const hanging = 1;
+
+// warms the cache; the loader skips it

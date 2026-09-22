@@ -15,6 +15,7 @@
   { "file": "slop.js", "rule": "prefer-jsdoc-for-exports", "line": 15 },
   { "file": "slop.js", "rule": "multiline-jsdoc-format", "line": 19 },
   { "file": "slop.js", "rule": "multiline-jsdoc-format", "line": 20 },
+  { "file": "slop.js", "rule": "no-prose-semicolon", "line": 23 },
   { "file": "slop.ts", "rule": "require-member-docs", "line": 8 },
   { "file": "slop.ts", "rule": "prefer-jsdoc-for-members", "line": 9 }
 ]
