@@ -14,6 +14,7 @@ export default [
       "no-comment-slop/multiline-jsdoc-format": "error",
       "no-comment-slop/no-trailing-period": "error",
       "no-comment-slop/no-em-dash": "error",
+      "no-comment-slop/no-prose-semicolon": "error",
       "no-comment-slop/no-jargon": "error",
       "no-comment-slop/no-foreign-syntax": "error"
     }
