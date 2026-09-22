@@ -2,6 +2,11 @@
 
 # eslint-plugin-no-comment-slop
 
+[![npm version](https://img.shields.io/npm/v/eslint-plugin-no-comment-slop)](https://www.npmjs.com/package/eslint-plugin-no-comment-slop)
+[![npm downloads](https://img.shields.io/npm/dm/eslint-plugin-no-comment-slop)](https://www.npmjs.com/package/eslint-plugin-no-comment-slop)
+[![node](https://img.shields.io/node/v/eslint-plugin-no-comment-slop)](https://www.npmjs.com/package/eslint-plugin-no-comment-slop)
+[![CI](https://github.com/jantimon/eslint-plugin-no-comment-slop/actions/workflows/ci.yml/badge.svg)](https://github.com/jantimon/eslint-plugin-no-comment-slop/actions/workflows/ci.yml)
+
 Flags AI comment slop in JavaScript and TypeScript. The same module runs unchanged in [ESLint](https://eslint.org), [oxlint](https://oxc.rs) and [rslint](https://rslint.rs) because it only uses the rule APIs all three linters implement. CI runs one fixture through eslint 9, eslint 10, oxlint and rslint and requires identical diagnostics.
 
 Before:
@@ -92,7 +97,7 @@ export default [
 
 ## Rules
 
-Every rule is part of the `recommended` config. The 🔧 fixes are mechanical: delete a banner, drop a period, turn `//` into JSDoc. `--fix` never rewrites your wording; `no-jargon` and `no-em-dash` report with guidance instead.
+Every rule is part of the `recommended` config. The 🔧 fixes are mechanical: delete a banner, drop a period, turn `//` into JSDoc. `--fix` never rewrites your wording. `no-jargon`, `no-em-dash` and `no-prose-semicolon` report with guidance instead.
 
 <!-- begin auto-generated rules list -->
 
@@ -120,7 +125,7 @@ Every rule is part of the `recommended` config. The 🔧 fixes are mechanical: d
 
 One flagged example per rule. Each rule doc has the matching fix.
 
-[`max-comment-lines`](docs/rules/max-comment-lines.md) — a wall of prose above one call:
+[`max-comment-lines`](docs/rules/max-comment-lines.md) a wall of prose above one call:
 
 ```js
 // This helper computes the value by first checking the cache,
@@ -130,7 +135,7 @@ One flagged example per rule. Each rule doc has the matching fix.
 const value = load();
 ```
 
-[`multiline-jsdoc-format`](docs/rules/multiline-jsdoc-format.md) — text hanging off the `/**` line:
+[`multiline-jsdoc-format`](docs/rules/multiline-jsdoc-format.md) text hanging off the `/**` line:
 
 ```js
 /** Stamped into every artifact so files are self-describing.
@@ -138,7 +143,7 @@ const value = load();
 export const schemaVersion = 3;
 ```
 
-[`no-banner-comment`](docs/rules/no-banner-comment.md) — ASCII rulers and banners:
+[`no-banner-comment`](docs/rules/no-banner-comment.md) ASCII rulers and banners:
 
 ```js
 // ============================
@@ -146,13 +151,13 @@ export const schemaVersion = 3;
 /* ************************** */
 ```
 
-[`no-em-dash`](docs/rules/no-em-dash.md) — the em dash aside:
+[`no-em-dash`](docs/rules/no-em-dash.md) the em dash aside:
 
 ```js
 // caches the value — see the loader
 ```
 
-[`no-foreign-syntax`](docs/rules/no-foreign-syntax.md) — Rust and C# doc habits in JavaScript:
+[`no-foreign-syntax`](docs/rules/no-foreign-syntax.md) Rust and C# doc habits in JavaScript:
 
 ```js
 /// Returns the user id
@@ -160,38 +165,38 @@ export const schemaVersion = 3;
 //#region helpers
 ```
 
-[`no-jargon`](docs/rules/no-jargon.md) — inflated vocabulary:
+[`no-jargon`](docs/rules/no-jargon.md) inflated vocabulary:
 
 ```js
 // utilize the robust cache to streamline lookups
 ```
 
-[`no-prose-semicolon`](docs/rules/no-prose-semicolon.md) — the semicolon that welds two thoughts together:
+[`no-prose-semicolon`](docs/rules/no-prose-semicolon.md) the semicolon that welds two thoughts together:
 
 ```js
 // warms the cache; the loader skips it on the next pass
 ```
 
-[`no-trailing-comment`](docs/rules/no-trailing-comment.md) — a comment restating the line it sits on:
+[`no-trailing-comment`](docs/rules/no-trailing-comment.md) a comment restating the line it sits on:
 
 ```js
 const retries = 3; // number of retries
 ```
 
-[`no-trailing-period`](docs/rules/no-trailing-period.md) — a sentence-ending period on a one-line comment:
+[`no-trailing-period`](docs/rules/no-trailing-period.md) a sentence-ending period on a one-line comment:
 
 ```js
 // waits for the lock before writing.
 ```
 
-[`prefer-jsdoc-for-exports`](docs/rules/prefer-jsdoc-for-exports.md) — `//` above an export, which no editor shows on hover:
+[`prefer-jsdoc-for-exports`](docs/rules/prefer-jsdoc-for-exports.md) `//` above an export, which no editor shows on hover:
 
 ```js
 // Parses the config file
 export function parseConfig(path) {}
 ```
 
-[`prefer-jsdoc-for-members`](docs/rules/prefer-jsdoc-for-members.md) — the same for a member:
+[`prefer-jsdoc-for-members`](docs/rules/prefer-jsdoc-for-members.md) the same for a member:
 
 ```ts
 interface RecordOptions {
@@ -200,7 +205,7 @@ interface RecordOptions {
 }
 ```
 
-[`require-member-docs`](docs/rules/require-member-docs.md) — one member left out once the rest are documented:
+[`require-member-docs`](docs/rules/require-member-docs.md) one member left out once the rest are documented:
 
 ```ts
 interface RecordOptions {
