@@ -116,6 +116,15 @@ try {
 }
 
 const wanted = normalize(expected);
+
+if (actual.length === 0 && wanted.length > 0) {
+  console.error(`${name}: reported no diagnostics at all (exit ${result.status})`);
+  console.error("The config probably no longer matches the fixture files or the plugin rules");
+  console.error("stdout:", result.stdout.slice(0, 2000));
+  console.error("stderr:", result.stderr.slice(0, 2000));
+  process.exit(1);
+}
+
 const missing = wanted.filter((entry) => !actual.includes(entry));
 const surplus = actual.filter((entry) => !wanted.includes(entry));
 
