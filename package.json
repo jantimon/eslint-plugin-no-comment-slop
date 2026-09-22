@@ -1,6 +1,6 @@
 {
   "name": "eslint-plugin-no-comment-slop",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Flags AI comment slop in JavaScript and TypeScript. Runs in ESLint, oxlint and rslint",
   "keywords": [
     "eslint",
