@@ -32,12 +32,10 @@ const DIRECTIVE = new RegExp(
     /^\s*@(?:type|typedef|satisfies|license|preserve|jsx|jsxImportSource|vite-ignore|vue-ignore|__PURE__)\b/,
     /^\s*#__(?:PURE|NO_SIDE_EFFECTS)__/,
     /^\s*(?:eslint|oxlint|biome)-(?:disable|enable)/,
-    /^\s*eslint(?:\s|-env\b|$)/,
     /^\s*tslint:/,
     /^\s*biome-ignore/,
     /^\s*(?:prettier|deno-lint|deno-fmt)-ignore/,
     /^\s*(?:istanbul|c8|v8|node|jest|vitest)\s+ignore/,
-    /^\s*(?:globals?|exported)\s/,
     /^\s*SPDX-License-Identifier/,
     /^\s*\/\s*<(?:reference|amd-module|amd-dependency)\b/,
     /^\s*webpack[A-Z]/,
@@ -47,7 +45,16 @@ const DIRECTIVE = new RegExp(
   "i",
 );
 
-const isDirective = (comment: CommentToken): boolean => DIRECTIVE.test(comment.value);
+/**
+ * Configuration directives that only ESLint reads, and only out of a block
+ * comment. A line comment opening with the word `global` or `exported` is
+ * prose, so it stays in scope for every rule
+ */
+const BLOCK_DIRECTIVE = /^\s*(?:globals?|exported|eslint(?:\s|-env\b|$))/i;
+
+const isDirective = (comment: CommentToken): boolean =>
+  DIRECTIVE.test(comment.value) ||
+  (comment.type === "Block" && BLOCK_DIRECTIVE.test(comment.value));
 
 const isJsdoc = (comment: CommentToken): boolean =>
   comment.type === "Block" && comment.value.startsWith("*");

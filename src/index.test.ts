@@ -503,3 +503,28 @@ test("no-foreign-syntax", () => {
     ],
   });
 });
+
+test("directive comments", () => {
+  ruleTester.run("no-em-dash", rule("no-em-dash"), {
+    valid: [
+      "/* globals answer */\nconst a = 1;",
+      "/* exported answer */\nvar answer = 1;",
+      "// oxlint-disable-next-line no-console \u2014 keeps CI quiet\nconst a = 1;",
+      "// @ts-expect-error legacy shim \u2014 drop once typed\nconst a = 1;",
+    ],
+    invalid: [
+      {
+        code: "// exported for the loader \u2014 see the notes\nconst a = 1;",
+        errors: [{ messageId: "dash" }],
+      },
+      {
+        code: "// globals are configured in the root \u2014 not here\nconst a = 1;",
+        errors: [{ messageId: "dash" }],
+      },
+      {
+        code: "// eslint is configured in the root \u2014 not here\nconst a = 1;",
+        errors: [{ messageId: "dash" }],
+      },
+    ],
+  });
+});
