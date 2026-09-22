@@ -2,7 +2,7 @@ import plugin from "../../dist/index.js";
 
 export default [
   {
-    files: ["tests/integration/fixture/*.{js,ts}"],
+    files: ["**/fixture/*.{js,ts}"],
     plugins: { "no-comment-slop": plugin },
     rules: {
       "no-comment-slop/max-comment-lines": "error",
