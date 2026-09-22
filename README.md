@@ -1,3 +1,5 @@
+[![no-comment-slop: flags AI comment slop](https://raw.githubusercontent.com/jantimon/eslint-plugin-no-comment-slop/main/assets/banner.png)](https://github.com/jantimon/eslint-plugin-no-comment-slop)
+
 # eslint-plugin-no-comment-slop
 
 Flags AI comment slop in JavaScript and TypeScript. The same module runs unchanged in [ESLint](https://eslint.org), [oxlint](https://oxc.rs) and [rslint](https://rslint.rs) because it only uses the rule APIs all three linters implement. CI runs one fixture through eslint 9, eslint 10, oxlint and rslint and requires identical diagnostics.
