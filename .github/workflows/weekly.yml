@@ -9,6 +9,9 @@ permissions:
   contents: read
   issues: write
 
+env:
+  TRACKING_LABEL: weekly-latest
+
 jobs:
   latest:
     runs-on: ubuntu-latest
@@ -21,17 +24,49 @@ jobs:
           cache: pnpm
       - run: pnpm install --no-frozen-lockfile
       - run: pnpm add -D eslint@latest oxlint@latest @rslint/core@latest
+      - name: Record linter versions
+        run: |
+          for pkg in eslint oxlint @rslint/core; do
+            version=$(node -p "require('./node_modules/$pkg/package.json').version")
+            echo "- \`$pkg\` $version"
+          done | tee versions.md
       - run: pnpm build
       - run: pnpm test
-      - run: |
+      - name: Integration matrix
+        run: |
+          status=0
           for linter in eslint eslint9 oxlint rslint; do
-            node tests/integration/run.mjs "$linter"
+            node tests/integration/run.mjs "$linter" || status=1
           done
-      - if: failure()
+          exit $status
+
+      - name: Open or update the tracking issue
+        if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          gh issue create \
-            --title "Weekly check against latest linters failed ($(date +%F))" \
-            --body "The integration matrix broke against the latest eslint/oxlint/rslint releases: $RUN_URL"
+          gh label create "$TRACKING_LABEL" \
+            --description "The weekly run against the latest linter releases is failing" \
+            --color D93F0B || true
+          body=$(printf 'The integration matrix broke against the latest linter releases.\n\nRun: %s\n\nVersions:\n%s\n' \
+            "$RUN_URL" "$(cat versions.md)")
+          existing=$(gh issue list --label "$TRACKING_LABEL" --state open --limit 1 --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create \
+              --title "Weekly check against the latest linters is failing" \
+              --label "$TRACKING_LABEL" \
+              --body "$body"
+          fi
+
+      - name: Close the tracking issue
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          for number in $(gh issue list --label "$TRACKING_LABEL" --state open --json number --jq '.[].number'); do
+            gh issue close "$number" --comment "Green again against the latest linters: $RUN_URL"
+          done
