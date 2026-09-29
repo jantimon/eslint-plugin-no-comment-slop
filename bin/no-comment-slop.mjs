@@ -21,7 +21,7 @@ Arguments:
   path            Directory or file to lint (default: current directory)
 
 Options:
-  --since <rev>   Report changes since the merge base of <rev> and HEAD,
+  --base <rev>    Report changes against the merge base of <rev> and HEAD,
                   including uncommitted and untracked files (default: HEAD)
   --all           Report every finding, not only those on changed lines
   -h, --help      Show this help
@@ -29,7 +29,7 @@ Options:
 
 Examples:
   npx eslint-plugin-no-comment-slop                  uncommitted changes
-  npx eslint-plugin-no-comment-slop --since main     changes on this branch
+  npx eslint-plugin-no-comment-slop --base main      changes on this branch
   npx eslint-plugin-no-comment-slop src --all        every file in src
 
 Exit codes: 0 no findings, 1 findings, 2 usage or git error`;
@@ -68,13 +68,13 @@ function sourceFiles(output) {
  * Collects the lines each changed source file adds or modifies relative to the merge base
  *
  * @param {string} target absolute path to lint
- * @param {string} since
+ * @param {string} rev
  * @returns {{ root: string, changed: ChangedLines }}
  */
-function changedLines(target, since) {
+function changedLines(target, rev) {
   const cwd = statSync(target).isDirectory() ? target : dirname(target);
   const root = git(cwd, ["rev-parse", "--show-toplevel"]).trim();
-  const base = git(root, ["merge-base", since, "HEAD"]).trim();
+  const base = git(root, ["merge-base", rev, "HEAD"]).trim();
 
   /** @type {ChangedLines} */
   const changed = new Map();
@@ -179,7 +179,7 @@ function main(argv) {
     args: argv,
     allowPositionals: true,
     options: {
-      since: { type: "string" },
+      base: { type: "string" },
       all: { type: "boolean" },
       help: { type: "boolean", short: "h" },
       version: { type: "boolean", short: "v" },
@@ -194,7 +194,7 @@ function main(argv) {
     return 0;
   }
   if (positionals.length > 1) throw new CliError("Pass at most one path");
-  if (values.all && values.since) throw new CliError("--all and --since exclude each other");
+  if (values.all && values.base) throw new CliError("--all and --base exclude each other");
 
   /** @type {string} */
   let target;
@@ -210,7 +210,7 @@ function main(argv) {
     return findings.length > 0 ? 1 : 0;
   }
 
-  const { root, changed } = changedLines(target, values.since ?? "HEAD");
+  const { root, changed } = changedLines(target, values.base ?? "HEAD");
   if (changed.size === 0) {
     console.log("No changed files to lint");
     return 0;

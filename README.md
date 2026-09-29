@@ -101,11 +101,11 @@ The package also ships a command that lints only the comments you changed. It ru
 
 ```sh
 npx eslint-plugin-no-comment-slop                  # uncommitted changes
-npx eslint-plugin-no-comment-slop --since main     # everything since this branch left main
+npx eslint-plugin-no-comment-slop --base main      # changes on this branch, even after merging main
 npx eslint-plugin-no-comment-slop src --all        # every file in src, no diff filter
 ```
 
-`--since <rev>` compares the working tree, untracked files included, against the merge base of `<rev>` and `HEAD`. A finding counts when any line it covers changed. The command exits with 1 when it reports findings and 2 on a usage or Git error. See `--help` for all options.
+`--base <rev>` compares the working tree, untracked files included, against the merge base of `<rev>` and `HEAD`. A finding counts when any line it covers changed. The command exits with 1 when it reports findings and 2 on a usage or Git error. See `--help` for all options.
 
 ## Rules
 

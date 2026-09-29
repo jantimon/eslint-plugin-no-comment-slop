@@ -48,8 +48,8 @@ test("reports nothing when the working tree is clean", () => {
   assert.match(result.stdout, /No changed files/);
 });
 
-test("--since reports only lines changed after the merge base", () => {
-  const result = run("--since", "base");
+test("--base reports only lines changed after the merge base", () => {
+  const result = run("--base", "base");
   assert.equal(result.status, 1, result.stderr);
   assert.equal(result.findings.length, 1, result.stdout);
   assert.match(result.findings[0] ?? "", /^\s+4:\d+\s+no-jargon/);
@@ -78,7 +78,7 @@ test("reports uncommitted and untracked changes by default", () => {
 });
 
 test("exits 2 on an unknown revision", () => {
-  const result = run("--since", "does-not-exist");
+  const result = run("--base", "does-not-exist");
   assert.equal(result.status, 2);
   assert.match(result.stderr, /git merge-base failed/);
 });
