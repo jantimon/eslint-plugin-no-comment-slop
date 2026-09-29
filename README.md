@@ -90,6 +90,18 @@ export default [
 ];
 ```
 
+## CLI
+
+The package also ships a command that lints only the comments you changed. It runs oxlint through `npx` with the recommended rules and ignores the repo's own lint config, so it works in any Git repo:
+
+```sh
+npx eslint-plugin-no-comment-slop                  # uncommitted changes
+npx eslint-plugin-no-comment-slop --since main     # everything since this branch left main
+npx eslint-plugin-no-comment-slop src --all        # every file in src, no diff filter
+```
+
+`--since <rev>` compares the working tree, untracked files included, against the merge base of `<rev>` and `HEAD`. A finding counts when any line it covers changed. The command exits with 1 when it reports findings and 2 on a usage or Git error. See `--help` for all options.
+
 ## Rules
 
 Every rule is part of the `recommended` config. The 🔧 fixes are mechanical: delete a banner, drop a period, turn `//` into JSDoc. `--fix` never rewrites your wording; `no-jargon` and `no-em-dash` report with guidance instead.
