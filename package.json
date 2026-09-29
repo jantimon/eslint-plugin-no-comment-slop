@@ -26,13 +26,17 @@
     }
   },
   "main": "./dist/index.js",
+  "bin": {
+    "no-comment-slop": "./bin/no-comment-slop.mjs"
+  },
   "files": [
+    "bin",
     "dist"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
-    "test": "node --test src/index.test.ts",
+    "test": "node --test src/index.test.ts tests/cli/cli.test.mjs",
     "integration": "node tests/integration/run.mjs",
     "lint": "eslint .",
     "docs:update": "eslint-doc-generator",
