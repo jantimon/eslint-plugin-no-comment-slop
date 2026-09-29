@@ -21,15 +21,16 @@ Arguments:
   path            Directory or file to lint (default: current directory)
 
 Options:
-  --since <rev>   Report changes since the merge base of <rev> and HEAD,
-                  including uncommitted and untracked files (default: HEAD)
+  --base <rev>    Report changes against the merge base of <rev> and HEAD,
+                  including uncommitted and untracked files (default: HEAD).
+                  A local branch counts as the remote branch it tracks
   --all           Report every finding, not only those on changed lines
   -h, --help      Show this help
   -v, --version   Show the version
 
 Examples:
   npx eslint-plugin-no-comment-slop                  uncommitted changes
-  npx eslint-plugin-no-comment-slop --since main     changes on this branch
+  npx eslint-plugin-no-comment-slop --base main      changes on this branch
   npx eslint-plugin-no-comment-slop src --all        every file in src
 
 Exit codes: 0 no findings, 1 findings, 2 usage or git error`;
@@ -68,19 +69,24 @@ function sourceFiles(output) {
  * Collects the lines each changed source file adds or modifies relative to the merge base
  *
  * @param {string} target absolute path to lint
- * @param {string} since
+ * @param {string} rev
  * @returns {{ root: string, changed: ChangedLines }}
  */
-function changedLines(target, since) {
+function changedLines(target, rev) {
   const cwd = statSync(target).isDirectory() ? target : dirname(target);
   const root = git(cwd, ["rev-parse", "--show-toplevel"]).trim();
-  const base = git(root, ["merge-base", since, "HEAD"]).trim();
+
+  // A local branch often lags behind the remote branch it tracks, so the remote gives the fresher merge base
+  const upstream =
+    rev === "HEAD" ? "" : spawnSync("git", ["rev-parse", "--verify", "--quiet", `${rev}@{upstream}`], { cwd: root, encoding: "utf8" }).stdout.trim();
+  const base = git(root, ["merge-base", upstream || rev, "HEAD"]).trim();
 
   /** @type {ChangedLines} */
   const changed = new Map();
   for (const file of sourceFiles(git(root, ["ls-files", "-z", "--others", "--exclude-standard", "--", target]))) {
     changed.set(file, true);
   }
+
   for (const file of sourceFiles(git(root, ["diff", "-z", "--name-only", "--diff-filter=ACMR", base, "--", target]))) {
     const diff = git(root, ["diff", "-U0", "--no-color", "--no-ext-diff", base, "--", file]);
     /** @type {Set<number>} */
@@ -104,6 +110,7 @@ function runOxlint(cwd, targets) {
       .filter(([, rule]) => rule.meta?.docs?.recommended)
       .map(([name]) => [`${meta.namespace}/${name}`, "error"]),
   );
+
   const configDir = mkdtempSync(join(tmpdir(), "no-comment-slop-"));
   try {
     const configPath = join(configDir, "oxlintrc.json");
@@ -111,6 +118,7 @@ function runOxlint(cwd, targets) {
       configPath,
       JSON.stringify({ jsPlugins: [pluginPath], categories: { correctness: "off" }, plugins: [], rules: recommended }),
     );
+
     const args = ["--yes", `--package=oxlint@${packageJson.devDependencies.oxlint}`, "--", "oxlint", "-c", configPath, "-f", "json", ...targets];
     /** @type {import("node:child_process").SpawnSyncOptionsWithStringEncoding} */
     const options = { cwd, encoding: "utf8", maxBuffer };
@@ -120,6 +128,7 @@ function runOxlint(cwd, targets) {
         ? spawnSync(["npx", ...args].map((arg) => `"${arg}"`).join(" "), { ...options, shell: true })
         : spawnSync("npx", args, options);
     if (result.error) throw new CliError(`oxlint failed to start: ${result.error.message}`);
+
     /** @type {{ diagnostics: { message: string, code: string, filename: string, labels: { span: { offset: number, length: number, line: number, column: number } }[] }[] }} */
     let report;
     try {
@@ -127,6 +136,7 @@ function runOxlint(cwd, targets) {
     } catch {
       throw new CliError(`oxlint produced no report (exit ${result.status})\n${result.stderr.trim()}`);
     }
+
     /** @type {Map<string, Buffer>} */
     const sources = new Map();
     return report.diagnostics.map((diagnostic) => {
@@ -137,6 +147,7 @@ function runOxlint(cwd, targets) {
         source = readFileSync(file);
         sources.set(file, source);
       }
+
       // oxlint reports offsets in UTF-8 bytes
       const newlines = source.subarray(span.offset, span.offset + span.length).toString("utf8").split("\n").length - 1;
       return {
@@ -159,14 +170,16 @@ function runOxlint(cwd, targets) {
 function print(findings) {
   /** @type {Map<string, Finding[]>} */
   const byFile = Map.groupBy(findings, (finding) => finding.file);
+
   for (const [file, group] of [...byFile].sort(([a], [b]) => a.localeCompare(b))) {
     console.log(styleText("underline", relative(process.cwd(), file) || file));
     for (const finding of group.sort((a, b) => a.line - b.line || a.column - b.column)) {
-      const position = styleText("dim", `${finding.line}:${finding.column}`.padEnd(8));
-      console.log(`  ${position}${styleText("red", finding.rule.padEnd(26))}${finding.message}`);
+      const position = styleText("dim", `${finding.line}:${finding.column}`.padEnd(7));
+      console.log(`  ${position} ${styleText("red", finding.rule.padEnd(25))} ${finding.message}`);
     }
     console.log();
   }
+
   const count = `${findings.length} finding${findings.length === 1 ? "" : "s"}`;
   console.log(findings.length === 0 ? "No findings" : styleText("bold", `${count} in ${byFile.size} file${byFile.size === 1 ? "" : "s"}`));
 }
@@ -179,12 +192,13 @@ function main(argv) {
     args: argv,
     allowPositionals: true,
     options: {
-      since: { type: "string" },
+      base: { type: "string" },
       all: { type: "boolean" },
       help: { type: "boolean", short: "h" },
       version: { type: "boolean", short: "v" },
     },
   });
+
   if (values.help) {
     console.log(help);
     return 0;
@@ -193,8 +207,9 @@ function main(argv) {
     console.log(packageJson.version);
     return 0;
   }
+
   if (positionals.length > 1) throw new CliError("Pass at most one path");
-  if (values.all && values.since) throw new CliError("--all and --since exclude each other");
+  if (values.all && values.base) throw new CliError("--all and --base exclude each other");
 
   /** @type {string} */
   let target;
@@ -210,11 +225,12 @@ function main(argv) {
     return findings.length > 0 ? 1 : 0;
   }
 
-  const { root, changed } = changedLines(target, values.since ?? "HEAD");
+  const { root, changed } = changedLines(target, values.base ?? "HEAD");
   if (changed.size === 0) {
     console.log("No changed files to lint");
     return 0;
   }
+
   const findings = runOxlint(root, [...changed.keys()]).filter((finding) => {
     const lines = changed.get(relative(root, finding.file));
     if (lines === true) return true;
