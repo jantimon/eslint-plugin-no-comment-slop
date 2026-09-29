@@ -75,6 +75,7 @@ function sourceFiles(output) {
 function changedLines(target, rev) {
   const cwd = statSync(target).isDirectory() ? target : dirname(target);
   const root = git(cwd, ["rev-parse", "--show-toplevel"]).trim();
+
   // A local branch often lags behind the remote branch it tracks, so the remote gives the fresher merge base
   const upstream =
     rev === "HEAD" ? "" : spawnSync("git", ["rev-parse", "--verify", "--quiet", `${rev}@{upstream}`], { cwd: root, encoding: "utf8" }).stdout.trim();
@@ -85,6 +86,7 @@ function changedLines(target, rev) {
   for (const file of sourceFiles(git(root, ["ls-files", "-z", "--others", "--exclude-standard", "--", target]))) {
     changed.set(file, true);
   }
+
   for (const file of sourceFiles(git(root, ["diff", "-z", "--name-only", "--diff-filter=ACMR", base, "--", target]))) {
     const diff = git(root, ["diff", "-U0", "--no-color", "--no-ext-diff", base, "--", file]);
     /** @type {Set<number>} */
@@ -108,6 +110,7 @@ function runOxlint(cwd, targets) {
       .filter(([, rule]) => rule.meta?.docs?.recommended)
       .map(([name]) => [`${meta.namespace}/${name}`, "error"]),
   );
+
   const configDir = mkdtempSync(join(tmpdir(), "no-comment-slop-"));
   try {
     const configPath = join(configDir, "oxlintrc.json");
@@ -115,6 +118,7 @@ function runOxlint(cwd, targets) {
       configPath,
       JSON.stringify({ jsPlugins: [pluginPath], categories: { correctness: "off" }, plugins: [], rules: recommended }),
     );
+
     const args = ["--yes", `--package=oxlint@${packageJson.devDependencies.oxlint}`, "--", "oxlint", "-c", configPath, "-f", "json", ...targets];
     /** @type {import("node:child_process").SpawnSyncOptionsWithStringEncoding} */
     const options = { cwd, encoding: "utf8", maxBuffer };
@@ -124,6 +128,7 @@ function runOxlint(cwd, targets) {
         ? spawnSync(["npx", ...args].map((arg) => `"${arg}"`).join(" "), { ...options, shell: true })
         : spawnSync("npx", args, options);
     if (result.error) throw new CliError(`oxlint failed to start: ${result.error.message}`);
+
     /** @type {{ diagnostics: { message: string, code: string, filename: string, labels: { span: { offset: number, length: number, line: number, column: number } }[] }[] }} */
     let report;
     try {
@@ -131,6 +136,7 @@ function runOxlint(cwd, targets) {
     } catch {
       throw new CliError(`oxlint produced no report (exit ${result.status})\n${result.stderr.trim()}`);
     }
+
     /** @type {Map<string, Buffer>} */
     const sources = new Map();
     return report.diagnostics.map((diagnostic) => {
@@ -141,6 +147,7 @@ function runOxlint(cwd, targets) {
         source = readFileSync(file);
         sources.set(file, source);
       }
+
       // oxlint reports offsets in UTF-8 bytes
       const newlines = source.subarray(span.offset, span.offset + span.length).toString("utf8").split("\n").length - 1;
       return {
@@ -163,6 +170,7 @@ function runOxlint(cwd, targets) {
 function print(findings) {
   /** @type {Map<string, Finding[]>} */
   const byFile = Map.groupBy(findings, (finding) => finding.file);
+
   for (const [file, group] of [...byFile].sort(([a], [b]) => a.localeCompare(b))) {
     console.log(styleText("underline", relative(process.cwd(), file) || file));
     for (const finding of group.sort((a, b) => a.line - b.line || a.column - b.column)) {
@@ -171,6 +179,7 @@ function print(findings) {
     }
     console.log();
   }
+
   const count = `${findings.length} finding${findings.length === 1 ? "" : "s"}`;
   console.log(findings.length === 0 ? "No findings" : styleText("bold", `${count} in ${byFile.size} file${byFile.size === 1 ? "" : "s"}`));
 }
@@ -189,6 +198,7 @@ function main(argv) {
       version: { type: "boolean", short: "v" },
     },
   });
+
   if (values.help) {
     console.log(help);
     return 0;
@@ -197,6 +207,7 @@ function main(argv) {
     console.log(packageJson.version);
     return 0;
   }
+
   if (positionals.length > 1) throw new CliError("Pass at most one path");
   if (values.all && values.base) throw new CliError("--all and --base exclude each other");
 
@@ -219,6 +230,7 @@ function main(argv) {
     console.log("No changed files to lint");
     return 0;
   }
+
   const findings = runOxlint(root, [...changed.keys()]).filter((finding) => {
     const lines = changed.get(relative(root, finding.file));
     if (lines === true) return true;
