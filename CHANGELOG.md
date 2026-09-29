@@ -1,5 +1,11 @@
 # eslint-plugin-no-comment-slop
 
+## 0.6.0
+
+### Minor Changes
+
+- f0c1f29: Rename the CLI's `--since <rev>` to `--base <rev>`. It compares against the merge base of `<rev>` and `HEAD`, so `--base main` shows only a branch's own changes, even after main was merged into it. A local branch now counts as the remote branch it tracks, so a stale local `main` no longer adds other people's changes to the report.
+
 ## 0.5.0
 
 ### Minor Changes
