@@ -105,7 +105,7 @@ npx eslint-plugin-no-comment-slop --base main      # changes on this branch, eve
 npx eslint-plugin-no-comment-slop src --all        # every file in src, no diff filter
 ```
 
-`--base <rev>` compares the working tree, untracked files included, against the merge base of `<rev>` and `HEAD`. A finding counts when any line it covers changed. The command exits with 1 when it reports findings and 2 on a usage or Git error. See `--help` for all options.
+`--base <rev>` compares the working tree, untracked files included, against the merge base of `<rev>` and `HEAD`. A local branch such as `main` counts as the remote branch it tracks (`origin/main`), so a stale local `main` does not pull other people's changes into the report. A finding counts when any line it covers changed. The command exits with 1 when it reports findings and 2 on a usage or Git error. See `--help` for all options.
 
 ## Rules
 

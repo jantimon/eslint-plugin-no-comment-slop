@@ -22,7 +22,8 @@ Arguments:
 
 Options:
   --base <rev>    Report changes against the merge base of <rev> and HEAD,
-                  including uncommitted and untracked files (default: HEAD)
+                  including uncommitted and untracked files (default: HEAD).
+                  A local branch counts as the remote branch it tracks
   --all           Report every finding, not only those on changed lines
   -h, --help      Show this help
   -v, --version   Show the version
@@ -74,7 +75,10 @@ function sourceFiles(output) {
 function changedLines(target, rev) {
   const cwd = statSync(target).isDirectory() ? target : dirname(target);
   const root = git(cwd, ["rev-parse", "--show-toplevel"]).trim();
-  const base = git(root, ["merge-base", rev, "HEAD"]).trim();
+  // A local branch often lags behind the remote branch it tracks, so the remote gives the fresher merge base
+  const upstream =
+    rev === "HEAD" ? "" : spawnSync("git", ["rev-parse", "--verify", "--quiet", `${rev}@{upstream}`], { cwd: root, encoding: "utf8" }).stdout.trim();
+  const base = git(root, ["merge-base", upstream || rev, "HEAD"]).trim();
 
   /** @type {ChangedLines} */
   const changed = new Map();
@@ -162,8 +166,8 @@ function print(findings) {
   for (const [file, group] of [...byFile].sort(([a], [b]) => a.localeCompare(b))) {
     console.log(styleText("underline", relative(process.cwd(), file) || file));
     for (const finding of group.sort((a, b) => a.line - b.line || a.column - b.column)) {
-      const position = styleText("dim", `${finding.line}:${finding.column}`.padEnd(8));
-      console.log(`  ${position}${styleText("red", finding.rule.padEnd(26))}${finding.message}`);
+      const position = styleText("dim", `${finding.line}:${finding.column}`.padEnd(7));
+      console.log(`  ${position} ${styleText("red", finding.rule.padEnd(25))} ${finding.message}`);
     }
     console.log();
   }
