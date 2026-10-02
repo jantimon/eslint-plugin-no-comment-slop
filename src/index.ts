@@ -278,11 +278,11 @@ const maxCommentLines: Rule.RuleModule = {
       {
         type: "object",
         properties: {
-          max: { type: "integer", minimum: 1 },
-          headerMax: { type: "integer", minimum: 1 },
-          jsdocSectionMax: { type: "integer", minimum: 1 },
-          exportDescriptionMax: { type: "integer", minimum: 1 },
-          exportTagMax: { type: "integer", minimum: 1 },
+          max: { type: "integer", minimum: 0 },
+          headerMax: { type: "integer", minimum: 0 },
+          jsdocSectionMax: { type: "integer", minimum: 0 },
+          exportDescriptionMax: { type: "integer", minimum: 0 },
+          exportTagMax: { type: "integer", minimum: 0 },
         },
         additionalProperties: false,
       },
