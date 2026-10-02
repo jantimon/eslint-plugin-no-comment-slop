@@ -74,6 +74,34 @@ test("max-comment-lines", () => {
         code: "/**\n * short\n *\n * @param x 1\n * 2\n * 3\n * 4\n * 5\n * 6\n * 7\n * 8\n */\nexport function f(x) { return x; }",
         errors: [{ messageId: "sectionTooLong", data: { lines: "8", max: "7" } }],
       },
+      {
+        code: "const a = 1;\n// one\nconst b = 2;",
+        options: [{ max: 0 }],
+        errors: [{ messageId: "tooLong", data: { lines: "1", max: "0" } }],
+      },
+      {
+        code: "// header\nconst a = 1;",
+        options: [{ headerMax: 0 }],
+        errors: [{ messageId: "tooLong", data: { lines: "1", max: "0" } }],
+      },
+      {
+        code: "/**\n * doc\n *\n * @param x the x\n */\nfunction f(x) {}",
+        options: [{ jsdocSectionMax: 0 }],
+        errors: [
+          { messageId: "sectionTooLong", data: { lines: "1", max: "0" } },
+          { messageId: "sectionTooLong", data: { lines: "1", max: "0" } },
+        ],
+      },
+      {
+        code: "/**\n * doc\n */\nexport const a = 1;",
+        options: [{ exportDescriptionMax: 0 }],
+        errors: [{ messageId: "sectionTooLong", data: { lines: "1", max: "0" } }],
+      },
+      {
+        code: "/**\n * doc\n *\n * @param x the x\n */\nexport function f(x) {}",
+        options: [{ exportTagMax: 0 }],
+        errors: [{ messageId: "sectionTooLong", data: { lines: "1", max: "0" }, line: 4 }],
+      },
     ],
   });
 });
