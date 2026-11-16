@@ -123,10 +123,29 @@ test("no-trailing-comment", () => {
       "const a = 1;\n/* standalone */",
       'const QUOTE = 0x22; // "',
       "const COMMA = 0x2c; // ,",
+      "const f = isStatic\n  ? // static render\n    (props) => props\n  : // dynamic render\n    (props) => props;",
+      "const f = isStatic\n  ? /**\n     * static render\n     */\n    (props) => props\n  : /**\n     * dynamic render\n     * - reads the theme\n     */\n    (props) => props;",
+      "const f = a\n  ? x\n  : b\n    ? // when b\n      y\n    : // otherwise\n      z;",
     ],
     invalid: [
       {
         code: "const a = 1; // trailing",
+        errors: [{ messageId: "trailing" }],
+      },
+      {
+        code: "const f = a ? b : c; // pick one",
+        errors: [{ messageId: "trailing" }],
+      },
+      {
+        code: "const f = a\n  ? foo // first branch\n  : bar;",
+        errors: [{ messageId: "trailing" }],
+      },
+      {
+        code: "const f = a\n  ? /* first branch */ foo\n  : bar;",
+        errors: [{ messageId: "trailing" }],
+      },
+      {
+        code: "const f = a\n  ? foo\n  : bar; // second branch",
         errors: [{ messageId: "trailing" }],
       },
       {

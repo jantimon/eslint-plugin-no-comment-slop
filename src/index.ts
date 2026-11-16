@@ -454,6 +454,25 @@ interface TrailingCommentOptions {
   allowShort?: number;
 }
 
+/**
+ * True when only the `?` or `:` of a conditional expression precedes the
+ * comment and nothing follows it on its last line. Prettier and oxfmt move a
+ * comment that stands before a ternary branch onto the operator line, so the
+ * author has no way to put it above the code:
+ *
+ * ```ts
+ * const render = isStatic
+ *   ? // static render
+ *     renderStatic
+ *   : renderDynamic;
+ * ```
+ */
+function isBeforeTernaryBranch(text: string, comment: CommentToken): boolean {
+  const before = text.slice(lineStart(text, comment.range[0]), comment.range[0]).trim();
+  if (before !== "?" && before !== ":") return false;
+  return /^[ \t]*(\r?\n|$)/.test(text.slice(comment.range[1]));
+}
+
 const noTrailingComment: Rule.RuleModule = {
   meta: {
     type: "suggestion",
@@ -487,6 +506,8 @@ const noTrailingComment: Rule.RuleModule = {
           if (isDirective(comment)) continue;
           if (!isTrailing(text, comment)) continue;
           if (comment.value.trim().length <= allowShort) continue;
+          // The formatter puts this comment after the operator, so the author cannot move it
+          if (isBeforeTernaryBranch(text, comment)) continue;
           context.report({ loc: comment.loc, messageId: "trailing" });
         }
       },
