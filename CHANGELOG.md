@@ -1,5 +1,11 @@
 # eslint-plugin-no-comment-slop
 
+## 0.6.1
+
+### Patch Changes
+
+- d67c2b6: `no-trailing-comment` allows a comment after the `?` or `:` of a multi-line conditional when the branch starts on the next line. Prettier and oxfmt print a comment before a ternary branch in that place, so the author cannot move it.
+
 ## 0.6.0
 
 ### Minor Changes
