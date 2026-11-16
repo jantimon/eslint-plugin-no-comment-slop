@@ -17,3 +17,12 @@ export const defaults: RecordOptions = {
   url: "http://localhost",
   headless: true,
 };
+
+export const launch = defaults.headless
+  ? // no window to wait for
+    () => defaults.url
+  : /**
+     * waits for the window
+     * before it returns the url
+     */
+    () => defaults.browser;
